@@ -35,7 +35,7 @@ policy:
   train_micro_batch_size: 1
   generation_batch_size: 4              # Reduced from 8
   logprob_batch_size: 2                 # Reduced from 4
-  max_total_sequence_length: 2048       # Reduced from 16384
+  max_total_sequence_length: 4096       # Reduced from 16384
   precision: "float16"                  # bfloat16 → float16
   fsdp_offload_enabled: false
   activation_checkpointing_enabled: false
