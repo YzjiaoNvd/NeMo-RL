@@ -132,9 +132,14 @@ class GenRMEnvironment(EnvironmentInterface):
                 
                 reward = -distance
                 
+                
             except Exception as e:
                 logging.error(f"Error processing response: {e}")
                 reward = -100
+            
+            print("Metadata: ", meta)
+            print("Reward: ", reward)
+            print("assistant_response: ", assistant_response)
             
             rewards.append(float(reward))
             observations.append({
