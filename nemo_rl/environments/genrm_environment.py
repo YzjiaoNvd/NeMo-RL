@@ -87,9 +87,6 @@ class GenRMEnvironment(EnvironmentInterface):
             # Extract assistant's response
             assistant_response = ""
             for msg in conversation:
-                print("!!!!!!!!!!!!!!!!!!!!!!")
-                print(msg)
-                print("!!!!!!!!!!!!!!!!!!!!!!")
                 if msg["role"] == "assistant":
                     assistant_response = msg["content"]
                     break
