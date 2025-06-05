@@ -1,7 +1,6 @@
-# GRPO GenRM Configuration for 1B model
 grpo:
-  num_prompts_per_step: 64
-  num_generations_per_prompt: 8
+  num_prompts_per_step: 32        # Reduced from 64
+  num_generations_per_prompt: 4   # Reduced from 8
   max_rollout_turns: 1
   max_num_steps: 1000
   normalize_rewards: true
@@ -12,12 +11,12 @@ grpo:
   val_batch_size: 8
 
 loss_fn:
-  reference_policy_kl_penalty: 0.02  # initial_policy_kl_penalty from the script
+  reference_policy_kl_penalty: 0.02
   ratio_clip_min: 0.2
   ratio_clip_max: 0.2
   ratio_clip_c: null
   use_on_policy_kl_approximation: false
-  use_importance_sampling_correction: true  # importance_sample_correct from the script
+  use_importance_sampling_correction: true
   token_level_loss: true
 
 checkpointing:
@@ -29,18 +28,18 @@ checkpointing:
   save_period: 5
 
 policy:
-  model_name: "meta-llama/Llama-3.2-1B-Instruct"  # Using 1B model as requested
+  model_name: "meta-llama/Llama-3.2-1B-Instruct"
   tokenizer:
     name: ${policy.model_name}
-  train_global_batch_size: 256
+  train_global_batch_size: 64           # Reduced from 256
   train_micro_batch_size: 1
-  generation_batch_size: 8
-  logprob_batch_size: 4
-  max_total_sequence_length: 16384  # Matching the script's max_length
-  precision: "bfloat16"
+  generation_batch_size: 4              # Reduced from 8
+  logprob_batch_size: 2                 # Reduced from 4
+  max_total_sequence_length: 2048       # Reduced from 16384
+  precision: "float16"                  # bfloat16 → float16
   fsdp_offload_enabled: false
   activation_checkpointing_enabled: false
-  refit_buffer_size_gb: 4
+  refit_buffer_size_gb: 2               # Reduced buffer size for lower memory
 
   dtensor_cfg:
     enabled: true
@@ -59,7 +58,7 @@ policy:
   optimizer:
     name: "torch.optim.AdamW"
     kwargs:
-      lr: 5.0e-7  # Matching the script's learning rate
+      lr: 5.0e-7
       weight_decay: 0.01
       betas: [0.9, 0.999]
       eps: 1e-8
@@ -81,7 +80,7 @@ policy:
   generation:
     backend: "vllm"
     max_new_tokens: ${policy.max_total_sequence_length}
-    temperature: 1.0  # Matching the script
+    temperature: 1.0
     top_p: 1.0
     top_k: null
     stop_token_ids: null
@@ -91,7 +90,7 @@ policy:
       precision: ${policy.precision}
       tensor_parallel_size: 1
       pipeline_parallel_size: 1
-      gpu_memory_utilization: 0.6
+      gpu_memory_utilization: 0.5        # Safer for A5000
       max_model_len: ${policy.max_total_sequence_length}
       load_format: dummy
 
@@ -100,11 +99,10 @@ data:
   prompt_file: null
   system_prompt_file: null
   dataset_name: "HelpSteer3-GenRM"
-  shuffle_train_data: false  # Matching the script
+  shuffle_train_data: false
 
 env:
   genrm:
-    # GenRM environment configuration
     num_workers: 1
 
 logger:
@@ -122,5 +120,5 @@ logger:
     flush_interval: 10
 
 cluster:
-  gpus_per_node: 2
+  gpus_per_node: 2     # Set to 1 for simplicity/OOM safety
   num_nodes: 1
