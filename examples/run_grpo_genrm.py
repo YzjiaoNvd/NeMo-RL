@@ -38,49 +38,18 @@ def helpsteer3_genrm_data_processor(
 ) -> DatumSpec:
     """Process HelpSteer3 data for GenRM training."""
     
-    # Extract the system prompt and user input from the data
-    system_prompt = datum_dict.get("system", "")
-    user_input = datum_dict.get("input", "")
+    # Extract the prompt (which contains the full formatted prompt with responses)
+    prompt = datum_dict.get("prompt", "")
     
-    # For GenRM, we need to format the input to ask the model to evaluate responses
-    # Based on the training data path, it seems they use a specific format
-    if "num_responses" in datum_dict and datum_dict["num_responses"] == 2:
-        # Two response evaluation
-        response1 = datum_dict.get("response1", "")
-        response2 = datum_dict.get("response2", "")
-        
-        prompt = f"""Please evaluate the following two responses and provide:
-1. Individual helpfulness scores (0-5) for each response
-2. A preference ranking indicating which response is better (1 if first is better, 2 if second is better)
-
-User Input: {user_input}
-
-Response 1: {response1}
-
-Response 2: {response2}
-
-Please provide your evaluation in the following format:
-[The Begin of Individual Scores]
-\\boxed{{score1, score2}}
-[The End of Individual Scores]
-
-[The Begin of Ranking Score]
-\\boxed{{ranking}}
-[The End of Ranking Score]"""
-    else:
-        # Single response evaluation
-        response = datum_dict.get("response", "")
-        
-        prompt = f"""Please evaluate the following response and provide a helpfulness score (0-5).
-
-User Input: {user_input}
-
-Response: {response}
-
-Please provide your evaluation in the following format:
-[The Begin of Individual Scores]
-\\boxed{{score}}
-[The End of Individual Scores]"""
+    # Extract metadata from the args field
+    args = datum_dict.get("args", {})
+    num_responses = args.get("num_responses", 1)
+    helpfulness_1 = args.get("helpfulness_1", None)
+    helpfulness_2 = args.get("helpfulness_2", None)
+    preference_ranking = args.get("preference_ranking", None)
+    
+    # Extract system prompt if present
+    system_prompt = datum_dict.get("system_prompt", "")
     
     # Create message log
     message_log = []
@@ -109,10 +78,10 @@ Please provide your evaluation in the following format:
     
     # Prepare metadata for environment
     metadata = {
-        "num_responses": datum_dict.get("num_responses", 1),
-        "helpfulness_1": datum_dict.get("helpfulness_1", None),
-        "helpfulness_2": datum_dict.get("helpfulness_2", None),
-        "preference_ranking": datum_dict.get("preference_ranking", None),
+        "num_responses": num_responses,
+        "helpfulness_1": helpfulness_1,
+        "helpfulness_2": helpfulness_2,
+        "preference_ranking": preference_ranking,
     }
     
     # Check if we need to truncate
