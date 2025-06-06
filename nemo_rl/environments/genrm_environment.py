@@ -49,7 +49,7 @@ class GenRMEnvironment(EnvironmentInterface):
             i += 1
 
         if right_brace_idx is None:
-            return None
+            retval = None
         else:
             retval = string[idx : right_brace_idx + 1]
 
@@ -63,6 +63,7 @@ class GenRMEnvironment(EnvironmentInterface):
                 return None
 
         return None
+
 
     def distance_abs(self, a: str, b: int) -> int:
         """Calculate absolute distance between predicted and ground truth."""
@@ -91,52 +92,39 @@ class GenRMEnvironment(EnvironmentInterface):
                     assistant_response = msg["content"]
                     break
 
+
             distance = 0
             try:
-                # Extract individual helpfulness scores
-                individual_scores_match = re.search(
-                    r'\[The Begin of Individual Scores\](.*?)\[The End of Individual Scores\]',
-                    assistant_response,
-                    re.DOTALL
-                )
-                
-                if individual_scores_match:
-                    scores_text = individual_scores_match.group(1)
-                    extracted_scores = self.extract_answer(scores_text)
-                    
-                    if extracted_scores:
-                        individual_scores = [s.strip() for s in extracted_scores.split(",")]
-                        
-                        if meta["num_responses"] == 1:
-                            if meta["helpfulness_1"] is not None:
-                                distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                        
-                        elif meta["num_responses"] == 2:
-                            if meta["helpfulness_1"] is not None and len(individual_scores) > 0:
-                                distance += self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                            if meta["helpfulness_2"] is not None and len(individual_scores) > 1:
-                                distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
-                            
-                            # Extract preference ranking
-                            preference_match = re.search(
-                                r'\[The Begin of Ranking Score\](.*?)\[The End of Ranking Score\]',
-                                assistant_response,
-                                re.DOTALL
-                            )
-                            
-                            if preference_match and meta["preference_ranking"] is not None:
-                                pref_text = preference_match.group(1)
-                                preference_ranking = self.extract_answer(pref_text)
-                                if preference_ranking:
-                                    distance += self.distance_abs(preference_ranking, meta["preference_ranking"])
-                
-                reward = -distance
+                # get individual helpfulness scores
+                indidual_scores_paragraph = assistant_response.split("[The Begin of Individual Scores]")[-1].split("[The End of Individual Scores]")[0]
+                individual_scores = self.extract_answer(indidual_scores_paragraph).split(",")
+                if meta["num_responses"] == 1:
+                    gt_individual = meta["helpfulness_1"] 
+                    distance = self.distance_abs(individual_scores[0], gt_individual)
+                elif meta["num_responses"] == 2:
+                    gt_individual_1 = meta.get("helpfulness_1", None)
+                    gt_individual_2 = meta.get("helpfulness_2", None)
+                    distance = 0
+                    if gt_individual_1 is not None and gt_individual_2 is not None:
+                        distance = self.distance_abs(individual_scores[0], gt_individual_1) + self.distance_abs(individual_scores[1], gt_individual_2)
+
+                    # get preference ranking score
+                    preference_ranking_paragraph = assistant_response.split("[The Begin of Ranking Score]")[-1].split("[The End of Ranking Score]")[0]
+                    preference_ranking = self.extract_answer(preference_ranking_paragraph)
+                    gt_preference_ranking = meta["preference_ranking"]
+                    distance += self.distance_abs(preference_ranking, gt_preference_ranking)
+
+                else:
+                    raise ValueError(f"Unsupported number of responses for genrm: {meta['num_responses']}")
                 
                 
             except Exception as e:
-                logging.error(f"Error processing response: {e}")
-                reward = -100
-            
+                logging.error(f"Error verifying response: {assistant_response}")
+                logging.error(f"Error: {e}")
+                distance = 100
+
+
+            reward = -distance
             print("Metadata: ", meta)
             print("Reward: ", reward)
             print("assistant_response: ", assistant_response)
@@ -162,13 +150,19 @@ class GenRMEnvironment(EnvironmentInterface):
         self, batch: BatchedDataDict
     ) -> tuple[BatchedDataDict, dict]:
         """Post processing and metrics calculation."""
-        mean_reward = batch["rewards"].mean().item() if "rewards" in batch else 0.0
-        positive_rewards = (batch["rewards"] > -10).float().mean().item() if "rewards" in batch else 0.0
-        
+        rewards = batch.get("rewards", torch.tensor([]))
+        num_samples = len(batch.get("idx", []))
+    
+        if len(rewards) == 0:
+            return batch, {}
+    
+        mean_reward = rewards.mean().item() if "rewards" in batch else 0.0
+        perfect_pred = (rewards == 0).float().mean().item()  # Exact matches
+
         metrics = {
             "mean_reward": mean_reward,
-            "positive_reward_rate": positive_rewards,
-            "num_samples": len(batch.get("idx", [])),
+            "perfect_pred_rate": perfect_pred,
+            "num_samples": num_samples,
         }
         
         return batch, metrics
