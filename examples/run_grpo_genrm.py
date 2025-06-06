@@ -196,8 +196,6 @@ def setup_data(
             max_seq_length=data_config["max_input_seq_length"],
         )
     
-    # ISSUE 2 FIX: Create environment mappings correctly
-    # Use defaultdict to ensure any task gets mapped to genrm_env
     task_to_env = defaultdict(lambda: genrm_env)
     task_to_env["genrm"] = genrm_env
     
