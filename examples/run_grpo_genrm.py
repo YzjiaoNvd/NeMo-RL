@@ -53,28 +53,31 @@ def helpsteer3_genrm_data_processor(
     
     # Create message log
     message_log = []
-    
-    # Add system message if present
-    if system_prompt:
-        system_msg = {
-            "role": "system",
-            "content": system_prompt,
-        }
-        system_tokens = tokenizer(system_prompt, return_tensors="pt", add_special_tokens=False)["input_ids"][0]
-        system_msg["token_ids"] = system_tokens
-        message_log.append(system_msg)
-    
-    # Add user message with the evaluation prompt
-    user_msg = {
+    user_message = {
         "role": "user",
         "content": prompt,
     }
-    user_tokens = tokenizer(prompt, return_tensors="pt", add_special_tokens=False)["input_ids"][0]
-    user_msg["token_ids"] = user_tokens
-    message_log.append(user_msg)
+    message: list[str] = tokenizer.apply_chat_template(  # type: ignore
+        [user_message],
+        tokenize=False,
+        add_generation_prompt=True,
+        add_special_tokens=False,
+    )
+    user_message["token_ids"] = tokenizer(message, return_tensors="pt")["input_ids"][0]
+    user_message["content"] = message[0]
+    message_log.append(user_message)
     
+
     # Calculate total length
     total_length = sum(len(msg["token_ids"]) for msg in message_log)
+    
+    # Check if we need to truncate
+    loss_multiplier = 1.0
+    if total_length > max_seq_length:
+        # Truncate messages
+        for msg in message_log:
+            msg["token_ids"] = msg["token_ids"][: min(4, max_seq_length // len(message_log)) ]
+        loss_multiplier = 0.0
     
     # Prepare metadata for environment
     metadata = {
@@ -83,15 +86,7 @@ def helpsteer3_genrm_data_processor(
         "helpfulness_2": helpfulness_2,
         "preference_ranking": preference_ranking,
     }
-    
-    # Check if we need to truncate
-    loss_multiplier = 1.0
-    if total_length > max_seq_length:
-        # Truncate messages
-        for msg in message_log:
-            msg["token_ids"] = msg["token_ids"][:max_seq_length // len(message_log)]
-        loss_multiplier = 0.0
-    
+
     return DatumSpec(
         message_log=message_log,
         length=total_length,
@@ -167,10 +162,10 @@ def setup_data(
     train_dataset = HelpSteer3LocalDataset(train_data_path, split="train")
     val_dataset = HelpSteer3LocalDataset(val_data_path, split="validation") if val_data_path else None
     
-    # Create task data processors
-    task_data_processors = {
-        "genrm": (genrm_task_spec, helpsteer3_genrm_data_processor)
-    }
+    # ISSUE 1 FIX: Use defaultdict to handle the task processor mapping correctly
+    # This ensures that any task_name gets mapped to the genrm processor
+    task_data_processors = defaultdict(lambda: (genrm_task_spec, helpsteer3_genrm_data_processor))
+    task_data_processors["genrm"] = (genrm_task_spec, helpsteer3_genrm_data_processor)
     
     # Initialize GenRM environment
     genrm_env = GenRMEnvironment.options(
@@ -186,8 +181,8 @@ def setup_data(
     processed_train_dataset = AllTaskProcessedDataset(
         train_dataset,
         tokenizer,
-        genrm_task_spec,
-        task_data_processors,
+        genrm_task_spec,  # default_task_data_spec
+        task_data_processors,  # task_data_processors dict
         max_seq_length=data_config["max_input_seq_length"],
     )
     
@@ -196,16 +191,20 @@ def setup_data(
         processed_val_dataset = AllTaskProcessedDataset(
             val_dataset,
             tokenizer,
-            genrm_task_spec,
-            task_data_processors,
+            genrm_task_spec,  # default_task_data_spec
+            task_data_processors,  # task_data_processors dict
             max_seq_length=data_config["max_input_seq_length"],
         )
     
-    # Create environment mappings
     task_to_env = defaultdict(lambda: genrm_env)
     task_to_env["genrm"] = genrm_env
     
-    return processed_train_dataset, processed_val_dataset, task_to_env, task_to_env
+    # For validation, use the same environment mapping
+    val_task_to_env = defaultdict(lambda: genrm_env)
+    val_task_to_env["genrm"] = genrm_env
+    
+    return processed_train_dataset, processed_val_dataset, task_to_env, val_task_to_env
+
 
 
 def main() -> None:
