@@ -120,7 +120,8 @@ class GenRMEnvironment(EnvironmentInterface):
 
             distance = 0
             error_details = []
-            
+            print(assistant_response)
+
             try:
                 # Check if response contains expected sections
                 has_individual_scores = "[The Begin of Individual Scores]" in assistant_response and "[The End of Individual Scores]" in assistant_response
@@ -197,6 +198,7 @@ class GenRMEnvironment(EnvironmentInterface):
 
             # Calculate reward (negative distance)
             reward = -distance
+            print("reward: ", reward)
             
             # Debug logging
             if distance > 0:
