@@ -1,6 +1,6 @@
 # GenRM Evaluation Configuration
 eval:
-  dataset_name: "rewardbench"  # Options: judgebench, rmbench, rewardbench
+  dataset_name: "judgebench"  # Options: judgebench, rmbench, rewardbench
   batch_size: 8
   seed: 42
   output_file: "results/genrm_eval.json"
