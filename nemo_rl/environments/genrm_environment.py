@@ -2,7 +2,7 @@
 import re
 import logging
 from typing import Any, Optional, TypedDict
-
+import numpy as np
 import ray
 import torch
 
@@ -74,11 +74,7 @@ class GenRMEnvironment(EnvironmentInterface):
             d = 100
         return d
     
-    def step(
-        self,
-        message_log_batch: list[list[dict[str, str]]],
-        metadata: list[GenRMEnvironmentMetadata],
-    ) -> EnvironmentReturn:
+    def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[GenRMEnvironmentMetadata],) -> EnvironmentReturn:
         """Evaluate GenRM predictions and return rewards."""
         
         rewards = []
@@ -146,9 +142,7 @@ class GenRMEnvironment(EnvironmentInterface):
             terminateds=terminateds,
         )
     
-    def global_post_process_and_metrics(
-        self, batch: BatchedDataDict
-    ) -> tuple[BatchedDataDict, dict]:
+    def global_post_process_and_metrics(self, batch: BatchedDataDict) -> tuple[BatchedDataDict, dict]:
         """Post processing and metrics calculation."""
         rewards = batch.get("rewards", torch.tensor([]))
         num_samples = len(batch.get("idx", []))
