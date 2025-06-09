@@ -26,7 +26,7 @@ from nemo_rl.distributed.batched_data_dict import BatchedDataDict
 from nemo_rl.distributed.virtual_cluster import ClusterConfig, RayVirtualCluster, init_ray
 from nemo_rl.models.generation.vllm import VllmConfig, VllmGeneration
 from nemo_rl.utils.config import load_config, parse_hydra_overrides
-
+from nemo_rl.models.generation import configure_generation_config
 
 class GenRMEvalConfig(TypedDict):
     dataset_name: str  # "judgebench", "rmbench", or "rewardbench"
@@ -347,8 +347,11 @@ def main():
     # Initialize Ray
     init_ray()
     
-    # Setup tokenizer
+        # Setup tokenizer
     tokenizer = get_tokenizer(config["tokenizer"])
+    config["generation"] = configure_generation_config(
+        config["generation"], tokenizer, is_eval=True
+    )
     
     # Setup data
     dataset, dataset_loader = setup_data(

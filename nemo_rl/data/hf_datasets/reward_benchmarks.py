@@ -91,7 +91,7 @@ def format_genrm_prompt(context: str, response1: str, response2: Optional[str] =
     else:
         responses = (
             f"[The Begin of Response 1]\n{response1}\n[The End of Response 1]\n"
-            f"[The Begin of Response 2]\n{response2}\n[The End of Response 2]"
+            f"[The Begin of Response 2]\n{response2}\n[The End of Response 2]\n"
         )
     
     return GENRM_PROMPT_TEMPLATE.format(
