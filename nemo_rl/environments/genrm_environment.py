@@ -74,11 +74,7 @@ class GenRMEnvironment(EnvironmentInterface):
             d = 100
         return d
     
-    def step(
-        self,
-        message_log_batch: list[list[dict[str, str]]],
-        metadata: list[GenRMEnvironmentMetadata],
-    ) -> EnvironmentReturn:
+    def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[GenRMEnvironmentMetadata],) -> EnvironmentReturn:
         """Evaluate GenRM predictions and return rewards."""
         
         rewards = []
@@ -146,9 +142,7 @@ class GenRMEnvironment(EnvironmentInterface):
             terminateds=terminateds,
         )
     
-    def global_post_process_and_metrics(
-        self, batch: BatchedDataDict
-    ) -> tuple[BatchedDataDict, dict]:
+    def global_post_process_and_metrics(self, batch: BatchedDataDict) -> tuple[BatchedDataDict, dict]:
         """Post processing and metrics calculation."""
         rewards = batch.get("rewards", torch.tensor([]))
         num_samples = len(batch.get("idx", []))
@@ -156,40 +150,12 @@ class GenRMEnvironment(EnvironmentInterface):
         if len(rewards) == 0:
             return batch, {}
     
-        # Convert rewards to numpy for easier processing
-        rewards_np = rewards.numpy() if hasattr(rewards, 'numpy') else rewards
-        
-        # Basic metrics
-        mean_reward = rewards_np.mean() if len(rewards_np) > 0 else 0.0
-        perfect_pred = (rewards_np == 0).mean()  # Exact matches (distance = 0)
-        
-        # Additional evaluation metrics
-        # Since reward = -distance, we can calculate distance metrics
-        distances = -rewards_np
-        
-        # Distance thresholds for accuracy at different levels
-        acc_at_1 = (distances <= 1).mean()  # Within 1 point
-        acc_at_2 = (distances <= 2).mean()  # Within 2 points
-        acc_at_5 = (distances <= 5).mean()  # Within 5 points
-        
-        # Distance statistics
-        mean_distance = distances.mean()
-        median_distance = np.median(distances)
-        max_distance = distances.max()
-        min_distance = distances.min()
-        std_distance = distances.std()
+        mean_reward = rewards.mean().item() if "rewards" in batch else 0.0
+        perfect_pred = (rewards == 0).float().mean().item()  # Exact matches
 
         metrics = {
-            "mean_reward": float(mean_reward),
-            "perfect_pred_rate": float(perfect_pred),
-            "accuracy_at_1": float(acc_at_1),
-            "accuracy_at_2": float(acc_at_2),
-            "accuracy_at_5": float(acc_at_5),
-            "mean_distance": float(mean_distance),
-            "median_distance": float(median_distance),
-            "min_distance": float(min_distance),
-            "max_distance": float(max_distance),
-            "std_distance": float(std_distance),
+            "mean_reward": mean_reward,
+            "perfect_pred_rate": perfect_pred,
             "num_samples": num_samples,
         }
         
