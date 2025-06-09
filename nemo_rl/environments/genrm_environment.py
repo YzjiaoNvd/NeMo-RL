@@ -2,7 +2,7 @@
 import re
 import logging
 from typing import Any, Optional, TypedDict
-
+import numpy as np
 import ray
 import torch
 
@@ -156,12 +156,40 @@ class GenRMEnvironment(EnvironmentInterface):
         if len(rewards) == 0:
             return batch, {}
     
-        mean_reward = rewards.mean().item() if "rewards" in batch else 0.0
-        perfect_pred = (rewards == 0).float().mean().item()  # Exact matches
+        # Convert rewards to numpy for easier processing
+        rewards_np = rewards.numpy() if hasattr(rewards, 'numpy') else rewards
+        
+        # Basic metrics
+        mean_reward = rewards_np.mean() if len(rewards_np) > 0 else 0.0
+        perfect_pred = (rewards_np == 0).mean()  # Exact matches (distance = 0)
+        
+        # Additional evaluation metrics
+        # Since reward = -distance, we can calculate distance metrics
+        distances = -rewards_np
+        
+        # Distance thresholds for accuracy at different levels
+        acc_at_1 = (distances <= 1).mean()  # Within 1 point
+        acc_at_2 = (distances <= 2).mean()  # Within 2 points
+        acc_at_5 = (distances <= 5).mean()  # Within 5 points
+        
+        # Distance statistics
+        mean_distance = distances.mean()
+        median_distance = np.median(distances)
+        max_distance = distances.max()
+        min_distance = distances.min()
+        std_distance = distances.std()
 
         metrics = {
-            "mean_reward": mean_reward,
-            "perfect_pred_rate": perfect_pred,
+            "mean_reward": float(mean_reward),
+            "perfect_pred_rate": float(perfect_pred),
+            "accuracy_at_1": float(acc_at_1),
+            "accuracy_at_2": float(acc_at_2),
+            "accuracy_at_5": float(acc_at_5),
+            "mean_distance": float(mean_distance),
+            "median_distance": float(median_distance),
+            "min_distance": float(min_distance),
+            "max_distance": float(max_distance),
+            "std_distance": float(std_distance),
             "num_samples": num_samples,
         }
         
