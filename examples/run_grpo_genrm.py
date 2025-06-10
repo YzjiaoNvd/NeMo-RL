@@ -126,13 +126,13 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument(
         "--train-data", 
         type=str, 
-        default="/home/yizhujiao/dataset/hs3_genrm/train_data.jsonl",
+        default="/lustre/fsw/portfolios/llmservice/users/jiaqiz/data/reinforce/hs3_genrm/hf/hf_rlhf_2_3_train.rl.sys2.jsonl",
         help="Path to training data JSONL file"
     )
     parser.add_argument(
         "--val-data",
         type=str,
-        default="/home/yizhujiao/dataset/hs3_genrm/val_data.jsonl",
+        default="/lustre/fsw/portfolios/llmservice/users/jiaqiz/data/reinforce/hs3_genrm/rlhf_2_3_val.rl.sys2.jsonl",
         help="Path to validation data JSONL file"
     )
 

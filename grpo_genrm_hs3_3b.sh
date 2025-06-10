@@ -11,6 +11,7 @@ export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
 
 
 
+
 #MODEL="nvidia/Llama-3_3-Nemotron-Super-49B-v1"
 #MODEL_NAME="Llama-3_3-Nemotron-Super-49B"
 FSDP2=True
