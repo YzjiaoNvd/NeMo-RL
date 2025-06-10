@@ -1,0 +1,141 @@
+GenRM Evaluation on JudgeBench Dataset
+======================================
+Base Directory: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128
+HF Directory: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF
+Start Time: Mon Jun  9 11:32:44 PM PDT 2025
+
+Finding checkpoints in /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF...
+Found checkpoints:
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_30
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_50
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_70
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_90
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_150
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_200
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_230
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_260
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_280
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_290
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_300
+
+----------------------------------------
+Evaluating checkpoint: step_30
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_30
+Running evaluation for step_30...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_30_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_50
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_50
+Running evaluation for step_50...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_50_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_70
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_70
+Running evaluation for step_70...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_70_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_90
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_90
+Running evaluation for step_90...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_90_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_150
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_150
+Running evaluation for step_150...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_150_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_200
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_200
+Running evaluation for step_200...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_200_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_230
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_230
+Running evaluation for step_230...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_230_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_260
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_260
+Running evaluation for step_260...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_260_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_280
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_280
+Running evaluation for step_280...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_280_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_290
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_290
+Running evaluation for step_290...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_290_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+----------------------------------------
+Evaluating checkpoint: step_300
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128/HF/step_300
+Running evaluation for step_300...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results//step_300_judgebench_results.json
+✓ Evaluation completed successfully
+Accuracy: N/A
+
+======================================
+Evaluation Complete!
+End Time: Mon Jun  9 11:59:31 PM PDT 2025
+
+Results saved in: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/
+
+Accuracy Summary:
+----------------
+step_30: Accuracy = N/A
+step_50: Accuracy = N/A
+step_70: Accuracy = N/A
+step_90: Accuracy = N/A
+step_150: Accuracy = N/A
+step_200: Accuracy = N/A
+step_230: Accuracy = N/A
+step_260: Accuracy = N/A
+step_280: Accuracy = N/A
+step_290: Accuracy = N/A
+step_300: Accuracy = N/A
+
+Sorted by Accuracy (Best to Worst):
+-----------------------------------
+step_90: Accuracy = N/A
+step_70: Accuracy = N/A
+step_50: Accuracy = N/A
+step_30: Accuracy = N/A
+step_300: Accuracy = N/A
+step_290: Accuracy = N/A
+step_280: Accuracy = N/A
+step_260: Accuracy = N/A
+step_230: Accuracy = N/A
+step_200: Accuracy = N/A
+step_150: Accuracy = N/A

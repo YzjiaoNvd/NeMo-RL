@@ -1,0 +1,5 @@
+GenRM Evaluation Summary - Mon Jun  9 09:09:38 PM PDT 2025
+================================
+Checkpoint Directory: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128
+Dataset: judgebench
+
