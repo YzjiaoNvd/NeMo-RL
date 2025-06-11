@@ -1,0 +1,19 @@
+[
+  {
+    "dataset": "ScalerLab/JudgeBench",
+    "config": null,
+    "split": "gpt",
+    "success": true,
+    "num_examples": 350,
+    "fields": [
+      "pair_id",
+      "original_id",
+      "source",
+      "question",
+      "response_model",
+      "response_A",
+      "response_B",
+      "label"
+    ]
+  }
+]

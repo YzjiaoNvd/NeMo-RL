@@ -6,7 +6,7 @@ import pprint
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional
-
+import random
 import torch
 from omegaconf import OmegaConf
 from torch.utils.data import Dataset
@@ -100,12 +100,18 @@ def helpsteer3_genrm_data_processor(
 class HelpSteer3LocalDataset(Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
     
-    def __init__(self, data_path: str, split: str = "train"):
+    def __init__(self, data_path: str, split: str = "train", shuffle: bool = False):
         self.data = []
         with open(data_path, 'r') as f:
             for line in f:
                 self.data.append(json.loads(line))
+
         self.split = split
+
+        if shuffle:
+            random.seed(0)
+            random.shuffle(self.data)
+            print(f"Shuffled {split} dataset with {len(self.data)} samples using seed 0")
     
     def __len__(self):
         return len(self.data)
@@ -123,19 +129,20 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument(
         "--config", type=str, default=None, help="Path to YAML config file"
     )
+    '''
     parser.add_argument(
         "--train-data", 
         type=str, 
-        default="/lustre/fsw/portfolios/llmservice/users/jiaqiz/data/reinforce/hs3_genrm/hf/hf_rlhf_2_3_train.rl.sys2.jsonl",
+        default="/home/yizhujiao/datasets/hs3_genrm/train_data.jsonl",
         help="Path to training data JSONL file"
     )
     parser.add_argument(
         "--val-data",
         type=str,
-        default="/lustre/fsw/portfolios/llmservice/users/jiaqiz/data/reinforce/hs3_genrm/rlhf_2_3_val.rl.sys2.jsonl",
+        default="/home/yizhujiao/datasets/hs3_genrm/val_data.jsonl",
         help="Path to validation data JSONL file"
     )
-
+    '''
     args, overrides = parser.parse_known_args()
     return args, overrides
 
@@ -144,8 +151,6 @@ def setup_data(
     tokenizer: PreTrainedTokenizerBase,
     data_config: DataConfig,
     env_configs: dict[str, Any],
-    train_data_path: str,
-    val_data_path: str,
 ) -> tuple[AllTaskProcessedDataset, Optional[AllTaskProcessedDataset], dict, dict]:
     """Set up data for GenRM training."""
     
@@ -159,7 +164,9 @@ def setup_data(
     )
     
     # Load local datasets
-    train_dataset = HelpSteer3LocalDataset(train_data_path, split="train")
+    train_data_path = data_config.get("train_data_path")
+    val_data_path = data_config.get("val_data_path")
+    train_dataset = HelpSteer3LocalDataset(train_data_path, split="train", shuffle=data_config.get("shuffle_train_data"))
     val_dataset = HelpSteer3LocalDataset(val_data_path, split="validation") if val_data_path else None
     
     # ISSUE 1 FIX: Use defaultdict to handle the task processor mapping correctly
@@ -251,9 +258,19 @@ def main() -> None:
         tokenizer, 
         config["data"], 
         config["env"],
-        args.train_data,
-        args.val_data,
     )
+
+    # Debug: Print first example from the dataset
+    if len(dataset) > 0:
+        print("\n[DEBUG] First example from dataset:")
+        first_example = dataset[0]
+        print(f"  Keys: {list(first_example.keys())}")
+        for key, value in first_example.items():
+            if isinstance(value, str) and len(value) > 200:
+                print(f"  {key}: {value[:200]}...")
+            else:
+                print(f"  {key}: {value}")
+
 
     # Setup GRPO training
     (
