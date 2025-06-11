@@ -100,46 +100,11 @@ def format_genrm_prompt(context: str, response1: str, response2: Optional[str] =
     )
 
 
-def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
-    """Format JudgeBench data for GenRM evaluation."""
-    # Extract conversation context and responses
-    context = data.get("prompt", "")
-    response1 = data.get("response_1", data.get("response1", ""))
-    response2 = data.get("response_2", data.get("response2", ""))
-    
-    prompt = format_genrm_prompt(context, response1, response2)
-    
-    # Extract scores and preferences with defaults
-    result = {
-        "prompt": prompt,
-        "num_responses": 2,
-        "label_1": data.get("score_1", data.get("label_1", None)),
-        "label_2": data.get("score_2", data.get("label_2", None)),
-        "preference": data.get("preference_label", data.get("preference", None)),
-        "ground_truth": data.get("ground_truth", None),
-    }
-    
-    # Ensure integer types for scores
-    if result["label_1"] is not None:
-        try:
-            result["label_1"] = int(result["label_1"])
-        except (ValueError, TypeError):
-            result["label_1"] = None
-    if result["label_2"] is not None:
-        try:
-            result["label_2"] = int(result["label_2"])
-        except (ValueError, TypeError):
-            result["label_2"] = None
-    if result["preference"] is not None:
-        try:
-            result["preference"] = int(result["preference"])
-        except (ValueError, TypeError):
-            result["preference"] = None
-            
-    return result
+
 
 
 def format_rmbench_example(data: dict[str, Any]) -> dict[str, Any]:
+    ################## TODO ##################
     """Format RM-Bench data for GenRM evaluation."""
     # Extract prompt and responses
     prompt_text = data.get("prompt", "")
@@ -167,6 +132,7 @@ def format_rmbench_example(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def format_rewardbench_example(data: dict[str, Any]) -> dict[str, Any]:
+    ################## TODO ##################
     """Format RewardBench data for GenRM evaluation."""
     # RewardBench format varies by subset
     prompt_text = data.get("prompt", "")
@@ -191,69 +157,55 @@ def format_rewardbench_example(data: dict[str, Any]) -> dict[str, Any]:
         "ground_truth": "chosen",
     }
 
+def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
+    """Format JudgeBench data for GenRM evaluation."""
+    # Extract conversation context and responses based on actual JudgeBench format
+    context = data.get("question", "")
+    response1 = data.get("response_A", "")
+    response2 = data.get("response_B", "")
+    prompt = format_genrm_prompt(context, response1, response2)
+    
+    # Parse the label field (e.g., "B>A" means B is better than A)
+    label = data.get("label", "")
+    preference = None
+    if label == "A>B":
+        preference = 0  # Response 1 (A) is better
+    else: # label == "B>A"
+        preference = 1  # Response 2 (B) is better
+    
+    # JudgeBench doesn't have individual scores, just preference labels
+    result = {
+        "prompt": prompt,
+        "num_responses": 2,
+        "label_1": None,  # JudgeBench doesn't provide individual scores
+        "label_2": None,
+        "preference": preference,
+        "ground_truth": label,  # Store original label as ground truth
+    }
+    
+    return result
+
 
 class JudgeBenchDataset:
     """JudgeBench dataset for GenRM evaluation."""
-    
     def __init__(self):
-        try:
-            # Load from HuggingFace
-            ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
-            self.formatted_ds = {
-                "test": ds.map(format_judgebench_example)
-            }
-        except Exception as e:
-            print(f"Error loading JudgeBench dataset: {e}")
-            # Create empty dataset as fallback
-            from datasets import Dataset
-            self.formatted_ds = {
-                "test": Dataset.from_dict({})
-            }
+        ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
+        self.formatted_ds = ds.map(format_judgebench_example, load_from_cache_file=False)
         self.task_spec = TaskDataSpec(task_name="JudgeBench")
+
 
 
 class RMBenchDataset:
     """RM-Bench dataset for GenRM evaluation."""
     
     def __init__(self):
-        try:
-            # Load from HuggingFace
-            ds = load_dataset("THU-KEG/RM-Bench", split="train")
-            self.formatted_ds = {
-                "test": ds.map(format_rmbench_example)
-            }
-        except Exception as e:
-            print(f"Error loading RM-Bench dataset: {e}")
-            # Create empty dataset as fallback
-            from datasets import Dataset
-            self.formatted_ds = {
-                "test": Dataset.from_dict({})
-            }
-        self.task_spec = TaskDataSpec(task_name="RM-Bench")
+        ###################TODO ###################
+        pass
 
 
 class RewardBenchDataset:
     """RewardBench dataset for GenRM evaluation."""
     
     def __init__(self):
-        try:
-            # Try the correct dataset name
-            ds = load_dataset("allenai/reward-bench", split="test")        
-            self.formatted_ds = {
-                "test": ds.map(format_rewardbench_example)
-            }
-        except Exception as e:
-            print(f"Error loading RewardBench dataset: {e}")
-            # Try alternative names
-            try:
-                ds = load_dataset("allenai/rewardbench", split="test")
-                self.formatted_ds = {
-                    "test": ds.map(format_rewardbench_example)
-                }
-            except:
-                # Create empty dataset as fallback
-                from datasets import Dataset
-                self.formatted_ds = {
-                    "test": Dataset.from_dict({})
-                }
-        self.task_spec = TaskDataSpec(task_name="RewardBench")
+        ###################TODO ###################
+        pass

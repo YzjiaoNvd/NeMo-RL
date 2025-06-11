@@ -32,6 +32,7 @@ kl=0.001
 NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}"
 
 RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}"
+
 mkdir -p $RESULTS_DIR
 
 MOUNTS="--container-mounts=${GPFS}:${GPFS},/lustre:/lustre"
@@ -65,6 +66,8 @@ cd ${GPFS} \
     grpo.val_period=10 \
     grpo.max_val_samples=64 \
     grpo.val_batch_size=64 \
+    data.train_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/train_data.jsonl" \
+    data.val_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data.jsonl" \
     loss_fn.reference_policy_kl_penalty=${kl} \
     loss_fn.use_on_policy_kl_approximation=False \
     loss_fn.use_importance_sampling_correction=False \

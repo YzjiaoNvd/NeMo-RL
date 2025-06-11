@@ -118,94 +118,58 @@ class GenRMEnvironment(EnvironmentInterface):
                     assistant_response = msg["content"]
                     break
 
-            distance = 0
+            distance = 100
             error_details = []
-            print(assistant_response)
 
             try:
-                # Check if response contains expected sections
-                has_individual_scores = "[The Begin of Individual Scores]" in assistant_response and "[The End of Individual Scores]" in assistant_response
-                has_ranking_score = "[The Begin of Ranking Score]" in assistant_response and "[The End of Ranking Score]" in assistant_response
+                # Extract individual helpfulness scores
+                individual_scores_match = re.search(
+                    r'\[The Begin of Individual Scores\](.*?)\[The End of Individual Scores\]',
+                    assistant_response,
+                    re.DOTALL
+                )
                 
-                if not has_individual_scores:
-                    error_details.append("Missing individual scores section")
-                    distance += 50
-                else:
-                    # Extract individual helpfulness scores
-                    individual_scores_section = assistant_response.split("[The Begin of Individual Scores]")[1].split("[The End of Individual Scores]")[0]
-                    scores_text = self.extract_answer(individual_scores_section)
+                if individual_scores_match:
+                    scores_text = individual_scores_match.group(1)
+                    extracted_scores = self.extract_answer(scores_text)
                     
-                    if scores_text is None:
-                        error_details.append("Failed to extract individual scores from boxed format")
-                        distance += 50
-                    else:
-                        # Parse individual scores
-                        score_parts = [s.strip() for s in scores_text.split(",")]
-                        individual_scores = []
+                    if extracted_scores:
+                        individual_scores = [s.strip() for s in extracted_scores.split(",")]
                         
-                        for i, score_str in enumerate(score_parts):
-                            score = self.parse_score_value(score_str)
-                            if score is None:
-                                error_details.append(f"Failed to parse score {i+1}: '{score_str}'")
-                                distance += 25
-                                individual_scores.append(0)
-                            else:
-                                individual_scores.append(score)
-                        
-                        # Compare with ground truth
                         if meta["num_responses"] == 1:
-                            if len(individual_scores) >= 1 and meta.get("helpfulness_1") is not None:
-                                distance += self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                            else:
-                                distance += 50
-                                
-                        elif meta["num_responses"] == 2:
-                            if len(individual_scores) >= 2:
-                                if meta.get("helpfulness_1") is not None:
-                                    distance += self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                                if meta.get("helpfulness_2") is not None:
-                                    distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
-                            else:
-                                error_details.append(f"Expected 2 scores but got {len(individual_scores)}")
-                                distance += 50
-                
-                # Handle ranking score for 2-response cases
-                if meta["num_responses"] == 2:
-                    if not has_ranking_score:
-                        error_details.append("Missing ranking score section")
-                        distance += 50
-                    else:
-                        # Extract preference ranking score
-                        ranking_section = assistant_response.split("[The Begin of Ranking Score]")[1].split("[The End of Ranking Score]")[0]
-                        ranking_text = self.extract_answer(ranking_section)
+                            if meta["helpfulness_1"] is not None:
+                                distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
                         
-                        if ranking_text is None:
-                            error_details.append("Failed to extract ranking score from boxed format")
-                            distance += 50
-                        else:
-                            ranking_score = self.parse_score_value(ranking_text)
-                            if ranking_score is None:
-                                error_details.append(f"Failed to parse ranking score: '{ranking_text}'")
-                                distance += 50
-                            elif meta.get("preference_ranking") is not None:
-                                distance += self.distance_abs(ranking_score, meta["preference_ranking"])
-                
+                        elif meta["num_responses"] == 2:
+                            if meta["helpfulness_1"] is not None and len(individual_scores) > 0:
+                                distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                            if meta["helpfulness_2"] is not None and len(individual_scores) > 1:
+                                distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
+                            
+                            # Extract preference ranking
+                            preference_match = re.search(
+                                r'\[The Begin of Ranking Score\](.*?)\[The End of Ranking Score\]',
+                                assistant_response,
+                                re.DOTALL
+                            )
+                            
+                            if preference_match and meta["preference_ranking"] is not None:
+                                pref_text = preference_match.group(1)
+                                preference_ranking = self.extract_answer(pref_text)
+                                if preference_ranking:
+                                    distance += self.distance_abs(preference_ranking, meta["preference_ranking"])
+
             except Exception as e:
-                logging.error(f"Error processing response: {str(e)}")
-                logging.error(f"Response content: {assistant_response[:500]}...")  # Log first 500 chars
-                error_details.append(f"Exception: {str(e)}")
+                print(f"Error processing response: {e}")
                 distance = 100
 
             # Calculate reward (negative distance)
             reward = -distance
-            print("reward: ", reward)
-            
-            # Debug logging
-            if distance > 0:
-                logging.debug(f"Distance: {distance}, Errors: {error_details}")
-                logging.debug(f"Metadata: {meta}")
-                if len(assistant_response) < 1000:
-                    logging.debug(f"Full response: {assistant_response}")
+            print("#################")
+            print(f"Distance: {distance}, Errors: {error_details}")
+            print(f"Metadata: {meta}")
+            print(f"Full response: {assistant_response}")
+            print("#################")
 
             rewards.append(float(reward))
             observations.append({
