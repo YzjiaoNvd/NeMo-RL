@@ -1,0 +1,32 @@
+{
+  "prompt": [
+    "What is machine learning?",
+    "Explain the theory of relativity",
+    "How do I make a good cup of coffee?"
+  ],
+  "response_1": [
+    "Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed. It uses algorithms to analyze data, identify patterns, and make decisions with minimal human intervention.",
+    "The theory of relativity, proposed by Albert Einstein, consists of two parts: special relativity (1905) and general relativity (1915). Special relativity states that the laws of physics are the same in all inertial reference frames and that the speed of light is constant. General relativity extends this to include gravity as a curvature of spacetime.",
+    "To make a good cup of coffee: 1) Use fresh, quality beans. 2) Grind beans just before brewing. 3) Use the right water temperature (195-205\u00b0F). 4) Maintain proper coffee-to-water ratio (1:15 to 1:17). 5) Brew for the appropriate time based on your method."
+  ],
+  "response_2": [
+    "Machine learning is when computers learn stuff by themselves.",
+    "Einstein said everything is relative and E=mc\u00b2. It's about how time and space work differently at high speeds.",
+    "Just put coffee in hot water and add sugar and milk if you want."
+  ],
+  "score_1": [
+    5,
+    5,
+    4
+  ],
+  "score_2": [
+    2,
+    3,
+    2
+  ],
+  "preference_label": [
+    1,
+    2,
+    2
+  ]
+}

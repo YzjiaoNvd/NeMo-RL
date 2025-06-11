@@ -12,7 +12,7 @@ generation:
   top_p: 1.0
   top_k: -1
   num_prompts_per_step: -1
-  model_name: "results/grpo_genrm/step_5/hf"  # Update with your checkpoint path
+  model_name: "results/grpo_genrm/HF/step_100"  # Update with your checkpoint path results/grpo_genrm/HF/step_65
   stop_token_ids: null
   stop_strings: null
   vllm_cfg:
