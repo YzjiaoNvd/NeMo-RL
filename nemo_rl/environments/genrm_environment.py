@@ -117,6 +117,7 @@ class GenRMEnvironment(EnvironmentInterface):
                 if msg["role"] == "assistant":
                     assistant_response = msg["content"]
                     break
+            
             distance = 100
             error_details = []
 

@@ -306,11 +306,10 @@ def calculate_metrics(results):
     """Calculate evaluation metrics."""
     correct_rankings = 0
     total_rankings = 0
-    score_differences = []
     
     for result in results:
+        total_rankings += 1
         if "predicted_ranking" in result and result["metadata"].get("preference_ranking") is not None:
-            total_rankings += 1
             # Convert preference to expected ranking
             true_pref = result["metadata"]["preference_ranking"]
             extracted_pred_rank = result["predicted_ranking"]
