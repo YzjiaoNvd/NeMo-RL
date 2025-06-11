@@ -51,54 +51,51 @@ def genrm_eval_data_processor(
     idx: int,
 ) -> DatumSpec:
     """Process evaluation data for GenRM format."""
-    # Format the prompt according to GenRM template
-    prompt = datum_dict["prompt"]
+    # Debug: Print the datum_dict to see what fields are available
+    if idx < 3:  # Only print first few examples
+        print(f"\n[DEBUG] Example {idx} datum_dict keys: {list(datum_dict.keys())}")
+        for key in ["prompt", "num_responses", "label_1", "label_2", "preference", "ground_truth"]:
+            if key in datum_dict:
+                value = datum_dict[key]
+                if isinstance(value, str) and len(value) > 100:
+                    print(f"  {key}: {value[:100]}...")
+                else:
+                    print(f"  {key}: {value}")
     
-    # Create message log
-    message_log = []
-    user_message = {
-        "role": "user",
-        "content": prompt,
-    }
-    message = tokenizer.apply_chat_template(
-        [user_message],
-        tokenize=False,
-        add_generation_prompt=True,
-        add_special_tokens=False,
-    )
+    # The datum_dict already contains the formatted prompt from format_judgebench_example
+    prompt = datum_dict.get("prompt", "")
     
-    # Handle case where apply_chat_template returns a list
-    if isinstance(message, list):
-        message = message[0]
+    # Tokenize the prompt to get token_ids
+    tokenized = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_seq_length)
+    token_ids = tokenized["input_ids"][0]
     
-    user_message["token_ids"] = tokenizer(message, return_tensors="pt", add_special_tokens=False)["input_ids"][0]
-    user_message["content"] = message
-    message_log.append(user_message)
+    # Create message log with tokenized content
+    message_log = [
+        {
+            "role": "user",
+            "content": prompt,
+            "token_ids": token_ids,
+        }
+    ]
     
-    # Calculate total length
-    total_length = sum(len(msg["token_ids"]) for msg in message_log)
-    
-    # Check if we need to truncate
-    loss_multiplier = 1.0
-    if total_length > max_seq_length:
-        for msg in message_log:
-            msg["token_ids"] = msg["token_ids"][:max_seq_length]
-        loss_multiplier = 0.0
-    
-    # Extract metadata
+    # Extract metadata - make sure we're getting the actual values
     metadata = {
         "num_responses": datum_dict.get("num_responses", 2),
-        "helpfulness_1": datum_dict.get("label_1", None),
-        "helpfulness_2": datum_dict.get("label_2", None),
-        "preference_ranking": datum_dict.get("preference", None),
-        "ground_truth": datum_dict.get("ground_truth", None),
+        "helpfulness_1": datum_dict.get("label_1"),
+        "helpfulness_2": datum_dict.get("label_2"),
+        "preference_ranking": datum_dict.get("preference"),
+        "ground_truth": datum_dict.get("ground_truth"),
     }
+    
+    # Debug: Print extracted metadata
+    if idx < 3:
+        print(f"  Extracted metadata: {metadata}")
 
     return DatumSpec(
         message_log=message_log,
-        length=total_length,
+        length=len(token_ids),
         extra_env_info=metadata,
-        loss_multiplier=loss_multiplier,
+        loss_multiplier=1.0,
         idx=idx,
         task_name="genrm_eval",
     )
@@ -135,23 +132,23 @@ def setup_data(tokenizer, data_config, dataset_name):
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
-    # Check if dataset loaded successfully
-    if len(dataset_loader.formatted_ds["test"]) == 0:
+    test_dataset = dataset_loader.formatted_ds
+    if test_dataset is None or len(test_dataset) == 0:
         print(f"⚠️ Warning: {dataset_name} dataset is empty or failed to load.")
-        print("Creating a dummy example for testing...")
-        # Create a dummy dataset for testing
-        from datasets import Dataset
-        dummy_data = {
-            "prompt": ["Test prompt"],
-            "num_responses": [2],
-            "label_1": [3],
-            "label_2": [4],
-            "preference": [5],
-            "ground_truth": [5],
-        }
-        dataset_loader.formatted_ds["test"] = Dataset.from_dict(dummy_data)
+        
     
-    print(f"  ✓ Loaded {len(dataset_loader.formatted_ds['test'])} examples")
+    print(f"  ✓ Loaded {len(test_dataset)} examples")
+    
+    # Debug: Print first example from the dataset
+    if len(test_dataset) > 0:
+        print("\n[DEBUG] First example from dataset:")
+        first_example = test_dataset[0]
+        print(f"  Keys: {list(first_example.keys())}")
+        for key, value in first_example.items():
+            if isinstance(value, str) and len(value) > 200:
+                print(f"  {key}: {value[:200]}...")
+            else:
+                print(f"  {key}: {value}")
     
     # Create task spec
     eval_task_spec = TaskDataSpec(
@@ -160,7 +157,7 @@ def setup_data(tokenizer, data_config, dataset_name):
     
     # Create processed dataset
     processed_dataset = AllTaskProcessedDataset(
-        dataset_loader.formatted_ds["test"],
+        test_dataset,
         tokenizer,
         eval_task_spec,
         genrm_eval_data_processor,
@@ -203,25 +200,48 @@ def evaluate_genrm(vllm_generation, dataloader, output_file):
     results = []
     
     print("\n▶ Running evaluation...")
-    for batch in tqdm(dataloader):
+    for batch_idx, batch in enumerate(tqdm(dataloader)):
+        # Debug first batch
+        if batch_idx == 0:
+            print(f"\n[DEBUG] First batch structure:")
+            print(f"  Batch keys: {list(batch.keys())}")
+            print(f"  Batch size: {len(batch['message_log'])}")
+            if len(batch['message_log']) > 0:
+                print(f"  First message_log structure: {[msg['role'] for msg in batch['message_log'][0]]}")
+                print(f"  First metadata: {batch['extra_env_info'][0]}")
+        
         # Generate responses
         prompts = []
         for message_log in batch["message_log"]:
-            content = [msg["content"] for msg in message_log]
-            prompts.append("".join(content))
+            # Extract just the content from the user message
+            if message_log and len(message_log) > 0 and message_log[0]["role"] == "user":
+                content = message_log[0]["content"]
+                prompts.append(content)
+                
+                # Debug: Print first prompt
+                if batch_idx == 0 and len(prompts) == 1:
+                    print(f"\n[DEBUG] First prompt (truncated): {content[:1000]}...")
+            else:
+                prompts.append("")
+                print(f"[WARNING] Empty or invalid message_log structure")
         
+        # Create generation input
         inputs = BatchedDataDict({"prompts": prompts})
         
-        # Add stop_strings if present
-        if "stop_strings" in batch:
-            inputs["stop_strings"] = batch["stop_strings"]
-        else:
-            inputs["stop_strings"] = [None] * len(prompts)
-        
-        outputs = vllm_generation.generate_text(inputs)["texts"]
+        # Generate using vLLM
+        try:
+            outputs = vllm_generation.generate_text(inputs)
+            generated_texts = outputs.get("texts", [""] * len(prompts))
+            
+            # Debug first generation
+            if batch_idx == 0 and len(generated_texts) > 0:
+                print(f"\n[DEBUG] First generation output (truncated): {generated_texts[0][:500]}...")
+        except Exception as e:
+            print(f"[ERROR] Generation failed: {e}")
+            generated_texts = [""] * len(prompts)
         
         # Process outputs and compare with ground truth
-        for idx, (output, metadata) in enumerate(zip(outputs, batch["extra_env_info"])):
+        for idx, (output, metadata) in enumerate(zip(generated_texts, batch["extra_env_info"])):
             result = {
                 "idx": batch["idx"][idx].item() if torch.is_tensor(batch["idx"][idx]) else batch["idx"][idx],
                 "prediction": output,
@@ -272,7 +292,6 @@ def evaluate_genrm(vllm_generation, dataloader, output_file):
             results.append(result)
     
     # Save results
-    import json
     os.makedirs(os.path.dirname(output_file) if os.path.dirname(output_file) else ".", exist_ok=True)
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
@@ -287,26 +306,17 @@ def calculate_metrics(results):
     """Calculate evaluation metrics."""
     correct_rankings = 0
     total_rankings = 0
-    score_differences = []
     
     for result in results:
-        if "predicted_ranking" in result and result["metadata"].get("preference") is not None:
-            total_rankings += 1
+        total_rankings += 1
+        if "predicted_ranking" in result and result["metadata"].get("preference_ranking") is not None:
             # Convert preference to expected ranking
-            # Assuming preference follows the convention: 1-3 means response 1 is better, 4-6 means response 2 is better
-            true_pref = result["metadata"]["preference"]
-            pred_rank = result["predicted_ranking"]
-            
-            # For judgebench/rmbench, lower values (1-3) mean first response is better
-            # For rewardbench, we just check if the model correctly identified the chosen one
-            if isinstance(true_pref, str) and true_pref == "chosen":
-                # RewardBench case
-                if pred_rank <= 3:  # Model thinks response 1 is better
-                    correct_rankings += 1
-            elif isinstance(true_pref, (int, float)):
-                # JudgeBench/RMBench case
-                if (true_pref <= 3 and pred_rank <= 3) or (true_pref > 3 and pred_rank > 3):
-                    correct_rankings += 1
+            true_pref = result["metadata"]["preference_ranking"]
+            extracted_pred_rank = result["predicted_ranking"]
+            pred_rank = 0 if extracted_pred_rank <= 3 else 1
+                
+            if pred_rank == true_pref:
+                correct_rankings += 1
     
     if total_rankings > 0:
         accuracy = correct_rankings / total_rankings
@@ -314,6 +324,10 @@ def calculate_metrics(results):
         print(f"  • Ranking Accuracy: {accuracy:.2%} ({correct_rankings}/{total_rankings})")
     else:
         print("\n⚠️ No valid rankings found in results")
+        print("This could be due to:")
+        print("  1. Empty model predictions")
+        print("  2. Missing metadata in the dataset")
+        print("  3. Parsing errors in the output")
 
 
 def main():
@@ -347,7 +361,7 @@ def main():
     # Initialize Ray
     init_ray()
     
-        # Setup tokenizer
+    # Setup tokenizer
     tokenizer = get_tokenizer(config["tokenizer"])
     config["generation"] = configure_generation_config(
         config["generation"], tokenizer, is_eval=True
@@ -360,8 +374,7 @@ def main():
         config["eval"]["dataset_name"],
     )
     
-    # Create dataloader
-    from nemo_rl.data.datasets import eval_collate_fn
+    # Create dataloader with eval_collate_fn
     dataloader = DataLoader(
         dataset,
         batch_size=config["eval"]["batch_size"],
@@ -384,11 +397,15 @@ def main():
     print("\n▶ Setting up vLLM generation...")
     vllm_generation = VllmGeneration(cluster=cluster, config=config["generation"])
     
+    # Prepare for generation
+    vllm_generation.prepare_for_generation()
+    
     # Run evaluation
     output_file = config["eval"]["output_file"]
     evaluate_genrm(vllm_generation, dataloader, output_file)
     
     # Cleanup
+    vllm_generation.finish_generation()
     vllm_generation.shutdown()
 
 
