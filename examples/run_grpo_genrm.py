@@ -129,20 +129,6 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument(
         "--config", type=str, default=None, help="Path to YAML config file"
     )
-    '''
-    parser.add_argument(
-        "--train-data", 
-        type=str, 
-        default="/home/yizhujiao/datasets/hs3_genrm/train_data.jsonl",
-        help="Path to training data JSONL file"
-    )
-    parser.add_argument(
-        "--val-data",
-        type=str,
-        default="/home/yizhujiao/datasets/hs3_genrm/val_data.jsonl",
-        help="Path to validation data JSONL file"
-    )
-    '''
     args, overrides = parser.parse_known_args()
     return args, overrides
 
