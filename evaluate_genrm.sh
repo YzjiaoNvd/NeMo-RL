@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=2 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name eval_genrm_custom -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=2 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p interactive --job-name eval_genrm_custom -t 04:00:00 
 
 export NCCL_ALGO=Tree
 set -x
