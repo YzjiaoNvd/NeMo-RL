@@ -1,5 +1,8 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name grpo_genrm_hs3_8B -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p interactive --job-name grpo_genrm_hs3_8B -t 04:00:00 
+
+
+
 
 export NCCL_ALGO=Tree
 
@@ -8,6 +11,7 @@ set -x
 GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
 CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
+
 
 
 

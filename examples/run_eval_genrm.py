@@ -324,10 +324,6 @@ def calculate_metrics(results):
         print(f"  • Ranking Accuracy: {accuracy:.2%} ({correct_rankings}/{total_rankings})")
     else:
         print("\n⚠️ No valid rankings found in results")
-        print("This could be due to:")
-        print("  1. Empty model predictions")
-        print("  2. Missing metadata in the dataset")
-        print("  3. Parsing errors in the output")
 
 
 def main():

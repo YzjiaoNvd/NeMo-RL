@@ -25,6 +25,7 @@ class GenRMEnvironment(EnvironmentInterface):
     
     def __init__(self, cfg: dict):
         self.cfg = cfg
+        self.format_penalty = cfg.get("format_penalty", -200)  # Large penalty for format violations
         logging.basicConfig(level=logging.INFO)
     
     def extract_answer(self, string: str) -> Optional[str]:
@@ -103,6 +104,62 @@ class GenRMEnvironment(EnvironmentInterface):
         except Exception as e:
             logging.error(f"Error calculating distance: {e}, predicted: {predicted}, ground_truth: {ground_truth}")
             return 100
+
+    def validate_format_and_extract(self, assistant_response: str, num_responses: int) -> tuple[bool, Optional[list], Optional[str], str]:
+        """
+        Validate the strict format and extract scores.
+        Returns: (is_valid_format, individual_scores, preference_ranking, error_message)
+        """
+        if num_responses == 1:
+            # Expected format: "[The Begin of Individual Scores]\n\\boxed{x} \n[The End of Individual Scores]\n"
+            pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+            match = re.search(pattern, assistant_response, re.DOTALL)
+            
+            if not match:
+                return False, None, None, "Format violation: Expected '[The Begin of Individual Scores]\\n\\\\boxed{x} \\n[The End of Individual Scores]\\n' for single response"
+            
+            score_content = match.group(1).strip()
+            # For single response, should be just one score
+            if ',' in score_content:
+                return False, None, None, "Format violation: Single response should contain only one score, found comma"
+            
+            return True, [score_content], None, ""
+            
+        elif num_responses == 2:
+            # Expected format: "[The Begin of Individual Scores]\n\\boxed{x, y} \n[The End of Individual Scores]\n[The Begin of Ranking Score]\n\\boxed{z} \n[The End of Ranking Score]"
+            
+            # Check individual scores section
+            individual_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+            individual_match = re.search(individual_pattern, assistant_response, re.DOTALL)
+            
+            if not individual_match:
+                return False, None, None, "Format violation: Missing or incorrect '[The Begin of Individual Scores]\\n\\\\boxed{x, y} \\n[The End of Individual Scores]' section"
+            
+            # Check ranking score section
+            ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
+            ranking_match = re.search(ranking_pattern, assistant_response, re.DOTALL)
+            
+            if not ranking_match:
+                return False, None, None, "Format violation: Missing or incorrect '[The Begin of Ranking Score]\\n\\\\boxed{z} \\n[The End of Ranking Score]' section"
+            
+            # Extract individual scores
+            scores_content = individual_match.group(1).strip()
+            individual_scores = [score.strip() for score in scores_content.split(',')]
+            
+            # For two responses, should have exactly two scores
+            if len(individual_scores) != 2:
+                return False, None, None, f"Format violation: Expected exactly 2 individual scores, found {len(individual_scores)}"
+            
+            # Extract preference ranking
+            preference_content = ranking_match.group(1).strip()
+            # Preference ranking should be a single value
+            if ',' in preference_content:
+                return False, None, None, "Format violation: Preference ranking should be a single value, found comma"
+            
+            return True, individual_scores, preference_content, ""
+        
+        else:
+            return False, None, None, f"Unsupported number of responses: {num_responses}"
     
     def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[GenRMEnvironmentMetadata],) -> EnvironmentReturn:
         """Evaluate GenRM predictions and return rewards."""
@@ -118,62 +175,59 @@ class GenRMEnvironment(EnvironmentInterface):
                     assistant_response = msg["content"]
                     break
             
-            distance = 100
-            error_details = []
-
-            try:
-                # Extract individual helpfulness scores
-                individual_scores_match = re.search(
-                    r'\[The Begin of Individual Scores\](.*?)\[The End of Individual Scores\]',
-                    assistant_response,
-                    re.DOTALL
-                )
+            
+            
+            is_valid_format, individual_scores, preference_ranking, error_message = self.validate_format_and_extract(
+                assistant_response, meta["num_responses"]
+            )
+            # Validate format and extract scores
+            print("assistant_response: ", assistant_response)
+            print("extracted results: ")
+            if individual_scores is not None:
+                print(individual_scores)
+            if preference_ranking is not None:
+                print(preference_ranking)
+            print()
+            
+            total_distance = 100
+            if not is_valid_format:
+                # Apply format penalty
+                reward = self.format_penalty
+                rewards.append(float(reward))
+                observations.append({
+                    "role": "environment",
+                    "content": f"Format violation penalty applied. Error: {error_message}. Reward: {reward}"
+                })
+                total_distance = 100
                 
-                if individual_scores_match:
-                    scores_text = individual_scores_match.group(1)
-                    extracted_scores = self.extract_answer(scores_text)
+            else:
+                error_details = []
+                try:
+                    if meta["num_responses"] == 1:
+                        if meta["helpfulness_1"] is not None and individual_scores:
+                            total_distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                        else:
+                            total_distance = 100  # Default high distance for missing data
                     
-                    if extracted_scores:
-                        individual_scores = [s.strip() for s in extracted_scores.split(",")]
-                        
-                        if meta["num_responses"] == 1:
-                            if meta["helpfulness_1"] is not None:
-                                distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                        
-                        elif meta["num_responses"] == 2:
-                            if meta["helpfulness_1"] is not None and len(individual_scores) > 0:
-                                distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                            if meta["helpfulness_2"] is not None and len(individual_scores) > 1:
-                                distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
-                            
-                            # Extract preference ranking
-                            preference_match = re.search(
-                                r'\[The Begin of Ranking Score\](.*?)\[The End of Ranking Score\]',
-                                assistant_response,
-                                re.DOTALL
-                            )
-                            
-                            if preference_match and meta["preference_ranking"] is not None:
-                                pref_text = preference_match.group(1)
-                                preference_ranking = self.extract_answer(pref_text)
-                                if preference_ranking:
-                                    distance += self.distance_abs(preference_ranking, meta["preference_ranking"])
+                    elif meta["num_responses"] == 2:
+                        # Calculate distance for both individual scores
+                        if meta["helpfulness_1"] is not None and individual_scores and len(individual_scores) == 2 and meta["preference_ranking"] is not None and preference_ranking:
+                            total_distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                            total_distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
+                            total_distance += self.distance_abs(preference_ranking, meta["preference_ranking"])
+                        else:
+                            total_distance = 100
 
-            except Exception as e:
-                print(f"Error processing response: {e}")
+                except Exception as e:
+                    logging.error(f"Error processing response: {e}")
+                    total_distance = 100  # High penalty for processing errors
 
-            # Calculate reward (negative distance)
-            reward = -distance
-            print("#################")
-            print(f"Distance: {distance}, Errors: {error_details}")
-            print(f"Metadata: {meta}")
-            print(f"Full response: {assistant_response}")
-            print("#################")
-
+            # Calculate reward (negative distance, but bonus for correct format)
+            reward = -total_distance
             rewards.append(float(reward))
             observations.append({
                 "role": "environment",
-                "content": f"GenRM evaluation complete. Distance: {distance}, Reward: {reward}"
+                "content": f"Format correct. GenRM evaluation complete. Distance: {total_distance}, Reward: {reward}"
             })
         
         rewards_tensor = torch.tensor(rewards, dtype=torch.float32)
@@ -200,15 +254,30 @@ class GenRMEnvironment(EnvironmentInterface):
         
         # Calculate metrics
         mean_reward = float(np.mean(rewards_np))
-        perfect_pred = float(np.mean(rewards_np == 0))  # Distance 0 = perfect
-        good_pred = float(np.mean(rewards_np >= -10))  # Distance <= 10 = good
+        
+        # Calculate format violation rate (rewards equal to format_penalty)
+        format_violation_rate = float(np.mean(rewards_np == self.format_penalty))
+        
+        # For non-format-penalty rewards, calculate accuracy metrics
+        accuracy_rewards = rewards_np[rewards_np != self.format_penalty]
+        if len(accuracy_rewards) > 0:
+            mean_accuracy_reward = float(np.mean(accuracy_rewards))
+            perfect_pred = float(np.mean(accuracy_rewards == 0))  # Distance 0 = perfect
+            good_pred = float(np.mean(accuracy_rewards >= -10))  # Distance <= 10 = good
+        else:
+            mean_accuracy_reward = 0.0
+            perfect_pred = 0.0
+            good_pred = 0.0
         
         metrics = {
             "mean_reward": mean_reward,
-            "mean_distance": -mean_reward,  # Since reward = -distance
+            "mean_distance": -mean_reward if mean_reward != self.format_penalty else 0,
+            "format_violation_rate": format_violation_rate,
+            "mean_accuracy_reward": mean_accuracy_reward,
             "perfect_pred_rate": perfect_pred,
             "good_pred_rate": good_pred,
             "num_samples": num_samples,
+            "format_correct_samples": len(accuracy_rewards),
         }
         
         return batch, metrics
