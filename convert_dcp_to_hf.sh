@@ -16,7 +16,7 @@ ACCOUNT="llmservice_modelalignment_ppo"
 PARTITION="interactive"
 TIME_LIMIT="04:00:00"
 NODES=1
-CPUS_PER_TASK=4
+CPUS_PER_TASK=8
 GPUS_PER_NODE=8
 
 

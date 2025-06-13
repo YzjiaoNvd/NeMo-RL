@@ -201,7 +201,6 @@ class GenRMEnvironment(EnvironmentInterface):
                 
             else:
                 reward = self.format_penalty
-                error_details = []
                 try:
                     if meta["num_responses"] == 1:
                         if meta["helpfulness_1"] is not None and individual_scores:
