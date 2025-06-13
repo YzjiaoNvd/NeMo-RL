@@ -7,7 +7,7 @@ grpo:
   normalize_rewards: true
   use_leave_one_out_baseline: true
   val_period: 5
-  val_at_start: false
+  val_at_start: True
   max_val_samples: 64
   val_batch_size: 8
 
