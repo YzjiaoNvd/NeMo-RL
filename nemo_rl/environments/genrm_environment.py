@@ -25,7 +25,7 @@ class GenRMEnvironment(EnvironmentInterface):
     
     def __init__(self, cfg: dict):
         self.cfg = cfg
-        self.format_penalty = cfg.get("format_penalty", -200)  # Large penalty for format violations
+        self.format_penalty = cfg.get("format_penalty", -100)  # Large penalty for format violations
         logging.basicConfig(level=logging.INFO)
     
     def extract_answer(self, string: str) -> Optional[str]:
@@ -189,7 +189,7 @@ class GenRMEnvironment(EnvironmentInterface):
                 print(preference_ranking)
             print()
             
-            total_distance = 100
+            
             if not is_valid_format:
                 # Apply format penalty
                 reward = self.format_penalty
@@ -198,37 +198,28 @@ class GenRMEnvironment(EnvironmentInterface):
                     "role": "environment",
                     "content": f"Format violation penalty applied. Error: {error_message}. Reward: {reward}"
                 })
-                total_distance = 100
                 
             else:
+                reward = self.format_penalty
                 error_details = []
                 try:
                     if meta["num_responses"] == 1:
                         if meta["helpfulness_1"] is not None and individual_scores:
-                            total_distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                        else:
-                            total_distance = 100  # Default high distance for missing data
+                            reward = -self.distance_abs(individual_scores[0], meta["helpfulness_1"])
                     
                     elif meta["num_responses"] == 2:
                         # Calculate distance for both individual scores
                         if meta["helpfulness_1"] is not None and individual_scores and len(individual_scores) == 2 and meta["preference_ranking"] is not None and preference_ranking:
-                            total_distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
-                            total_distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
-                            total_distance += self.distance_abs(preference_ranking, meta["preference_ranking"])
-                        else:
-                            total_distance = 100
-
+                            reward = - self.distance_abs(individual_scores[0], meta["helpfulness_1"])  - self.distance_abs(individual_scores[1], meta["helpfulness_2"]) - self.distance_abs(preference_ranking, meta["preference_ranking"])
+                
                 except Exception as e:
                     logging.error(f"Error processing response: {e}")
-                    total_distance = 100  # High penalty for processing errors
 
-            # Calculate reward (negative distance, but bonus for correct format)
-            reward = -total_distance
-            rewards.append(float(reward))
-            observations.append({
-                "role": "environment",
-                "content": f"Format correct. GenRM evaluation complete. Distance: {total_distance}, Reward: {reward}"
-            })
+                rewards.append(float(reward))
+                observations.append({
+                    "role": "environment",
+                    "content": f"Format correct. GenRM evaluation complete. Reward: {reward}"
+                })
         
         rewards_tensor = torch.tensor(rewards, dtype=torch.float32)
         terminateds = torch.ones_like(rewards_tensor, dtype=torch.bool)

@@ -36,3 +36,4 @@ wandb/
 checkpoints/
 results/
 code_snapshots/
+outputs/
