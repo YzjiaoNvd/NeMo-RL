@@ -1,5 +1,8 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name grpo_genrm_hs3_8B -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p interactive --job-name grpo_genrm_hs3_3B -t 04:00:00 
+#SBATCH --mem=0 --dependency singleton
+
+
 
 export NCCL_ALGO=Tree
 
@@ -24,7 +27,7 @@ TP=1
 project_name="yizhu_rlhf"
 lr=2e-6
 temp=1
-grpo_bs=128
+grpo_bs=64
 prompts_per_step=128
 rollouts_per_prompt=8
 kl=0.001
@@ -62,7 +65,7 @@ cd ${GPFS} \
     ++cluster.gpus_per_node=8 \
     grpo.num_prompts_per_step=${prompts_per_step} \
     grpo.num_generations_per_prompt=${rollouts_per_prompt} \
-    grpo.val_period=10 \
+    grpo.val_period=1 \
     grpo.max_val_samples=64 \
     grpo.val_batch_size=64 \
     data.train_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/train_data.jsonl" \
@@ -75,7 +78,7 @@ cd ${GPFS} \
     loss_fn.ratio_clip_min=0.2 \
     loss_fn.ratio_clip_max=0.28 \
     policy.train_global_batch_size=${grpo_bs} \
-    policy.train_micro_batch_size=4 \
+    policy.train_micro_batch_size=1 \
     policy.generation_batch_size=32 \
     policy.logprob_batch_size=1 \
     policy.max_total_sequence_length=8192 \
@@ -85,7 +88,7 @@ cd ${GPFS} \
     policy.generation.vllm_cfg.tensor_parallel_size=1 \
     policy.generation.vllm_cfg.gpu_memory_utilization=0.6 \
     data.dataset_name="hs3" \
-    env.genrm.num_workers=8
+    env.genrm.num_workers=1
 EOF
 
 srun -o $PPO_OUTFILE -e $PPO_ERRFILE --container-image=${CONTAINER} $MOUNTS bash -c "${cmd_ppo}"
