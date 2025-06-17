@@ -11,7 +11,7 @@ set -x
 GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
 CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
-
+grpo_genrm_hs3_3b.sh
 
 
 
