@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p interactive --job-name eval_genrm_custom -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=2 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p interactive --job-name eval_genrm_custom -t 04:00:00 
 
 export NCCL_ALGO=Tree
 set -x
@@ -11,9 +11,9 @@ export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
 
 
 # Base directory for your specific checkpoint structure
-BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128}"
+BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64}"
 HF_DIR="${BASE_DIR}/HF"  # Your checkpoints are under HF/step_X
-RESULTS_DIR="${2:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128}"
+RESULTS_DIR="${2:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64}"
 
 # Create results directory
 mkdir -p $RESULTS_DIR
@@ -116,7 +116,7 @@ EOF
     echo "Output will be saved to: $OUTPUT_FILE" | tee -a $SUMMARY_FILE
     
     # Execute the evaluation
-    srun -o $LOG_FILE -e $ERR_FILE --container-image=${CONTAINER}  -A llmservice_modelalignment_ppo -p interactive --job-name eval_genrm_custom  -N 1 --gpus-per-node=1 --ntasks-per-node 1  $MOUNTS bash -c "${cmd_eval}"
+    srun -o $LOG_FILE -e $ERR_FILE --container-image=${CONTAINER}  -A llmservice_modelalignment_ppo -p batch --job-name eval_genrm_custom  -N 1 --gpus-per-node=1 --ntasks-per-node 1  $MOUNTS bash -c "${cmd_eval}"
     
     # Check if evaluation was successful
     if [ $? -eq 0 ]; then

@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 
 from nemo_rl.data.interfaces import TaskDataSpec
 
@@ -189,8 +189,15 @@ def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
 class JudgeBenchDataset:
     """JudgeBench dataset for GenRM evaluation."""
     def __init__(self):
-        ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
-        self.formatted_ds = ds.map(format_judgebench_example, load_from_cache_file=False)
+        # Load both splits
+        gpt_ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
+        claude_ds = load_dataset("ScalerLab/JudgeBench", split="claude")
+        
+        # Merge the datasets
+        merged_ds = concatenate_datasets([gpt_ds, claude_ds])
+        
+        # Format the merged dataset
+        self.formatted_ds = merged_ds.map(format_judgebench_example, load_from_cache_file=False)
         self.task_spec = TaskDataSpec(task_name="JudgeBench")
 
 
