@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name grpo_genrm_hs3_3B -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=8 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name grpo_genrm_hs3_8B -t 04:00:00 
 #SBATCH --mem=0 --dependency singleton
 
 
@@ -15,12 +15,11 @@ export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
 
 
 
-
 #MODEL="nvidia/Llama-3_3-Nemotron-Super-49B-v1"
 #MODEL_NAME="Llama-3_3-Nemotron-Super-49B"
 FSDP2=True
-MODEL="meta-llama/Llama-3.2-3B-Instruct"
-MODEL_NAME="llama3.2_3B"
+MODEL="meta-llama/Llama-3.1-8B-Instruct"
+MODEL_NAME="llama3.1_8B"
 
 ACT_CKPT=True
 CPU_OFFLOAD=False
@@ -29,7 +28,7 @@ project_name="yizhu_rlhf"
 lr=2e-6
 temp=1
 grpo_bs=64
-prompts_per_step=128
+prompts_per_step=64
 rollouts_per_prompt=8
 kl=0.001
 
@@ -88,7 +87,7 @@ cd ${GPFS} \
     policy.optimizer.kwargs.weight_decay=0 \
     policy.generation.temperature=${temp} \
     policy.generation.vllm_cfg.tensor_parallel_size=1 \
-    policy.generation.vllm_cfg.gpu_memory_utilization=0.6 \
+    policy.generation.vllm_cfg.gpu_memory_utilization=0.4 \
     data.dataset_name="hs3" \
     env.genrm.num_workers=1
 EOF

@@ -1,0 +1,98 @@
+GenRM Evaluation on JudgeBench Dataset
+======================================
+Base Directory: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64
+HF Directory: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF
+Start Time: Mon Jun 16 07:57:08 PM PDT 2025
+
+Finding checkpoints in /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF...
+Found checkpoints:
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_5
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_10
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_15
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_20
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_25
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_30
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_35
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_40
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_45
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_50
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_55
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_60
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_65
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_70
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_75
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_80
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_85
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_90
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_95
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_100
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_105
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_110
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_115
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_120
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_125
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_130
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_135
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_140
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_145
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_150
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_155
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_160
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_165
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_170
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_175
+/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_180
+
+----------------------------------------
+Evaluating checkpoint: step_5
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_5
+Running evaluation for step_5...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_5_judgebench_results.json
+✗ Evaluation failed for step_5
+Check error log: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_5_eval.err
+
+----------------------------------------
+Evaluating checkpoint: step_10
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_10
+Running evaluation for step_10...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_10_judgebench_results.json
+✗ Evaluation failed for step_10
+Check error log: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_10_eval.err
+
+----------------------------------------
+Evaluating checkpoint: step_15
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_15
+Running evaluation for step_15...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_15_judgebench_results.json
+✗ Evaluation failed for step_15
+Check error log: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_15_eval.err
+
+----------------------------------------
+Evaluating checkpoint: step_20
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_20
+Running evaluation for step_20...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_20_judgebench_results.json
+✗ Evaluation failed for step_20
+Check error log: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_20_eval.err
+
+----------------------------------------
+Evaluating checkpoint: step_25
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_25
+Running evaluation for step_25...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_25_judgebench_results.json
+✗ Evaluation failed for step_25
+Check error log: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_25_eval.err
+
+----------------------------------------
+Evaluating checkpoint: step_30
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_30
+Running evaluation for step_30...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_30_judgebench_results.json
+✗ Evaluation failed for step_30
+Check error log: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_30_eval.err
+
+----------------------------------------
+Evaluating checkpoint: step_35
+Path: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/HF/step_35
+Running evaluation for step_35...
+Output will be saved to: /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64/step_35_judgebench_results.json

@@ -13,7 +13,7 @@ CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anys
 
 # SLURM configuration
 ACCOUNT="llmservice_modelalignment_ppo"
-PARTITION="interactive"
+PARTITION="batch"
 TIME_LIMIT="04:00:00"
 NODES=1
 CPUS_PER_TASK=8
