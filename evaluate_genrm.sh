@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=2 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p interactive --job-name eval_genrm_custom -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=2 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name eval_genrm_custom -t 04:00:00 
 
 export NCCL_ALGO=Tree
 set -x
@@ -8,12 +8,14 @@ set -x
 GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
 CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
+export HF_TOKEN="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"
+export WANDB_API_KEY="513faa0f50aaa6c8922ba4ffa34b9053a21c2954"
 
 
 # Base directory for your specific checkpoint structure
-BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64}"
+BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128}"
 HF_DIR="${BASE_DIR}/HF"  # Your checkpoints are under HF/step_X
-RESULTS_DIR="${2:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_64}"
+RESULTS_DIR="${2:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128}"
 
 # Create results directory
 mkdir -p $RESULTS_DIR
@@ -33,36 +35,6 @@ echo "HF Directory: $HF_DIR" >> $SUMMARY_FILE
 echo "Start Time: $(date)" >> $SUMMARY_FILE
 echo "" >> $SUMMARY_FILE
 
-# Function to extract accuracy from JSON output
-extract_accuracy() {
-    local json_file=$1
-    if [ -f "$json_file" ]; then
-        accuracy=$(python3 -c "
-import json
-with open('$json_file', 'r') as f:
-    results = json.load(f)
-    
-correct = 0
-total = 0
-for r in results:
-    if 'predicted_ranking' in r and r['metadata'].get('preference') is not None:
-        total += 1
-        pred = r['predicted_ranking']
-        true_pref = r['metadata']['preference']
-        if (true_pref <= 3 and pred <= 3) or (true_pref > 3 and pred > 3):
-            correct += 1
-
-if total > 0:
-    accuracy = correct / total
-    print(f'{accuracy:.4f}')
-else:
-    print('N/A')
-" 2>/dev/null)
-        echo "$accuracy"
-    else
-        echo "N/A"
-    fi
-}
 
 # Find all step directories under HF/ and sort them numerically
 echo "Finding checkpoints in $HF_DIR..." | tee -a $SUMMARY_FILE
@@ -105,7 +77,7 @@ cd ${GPFS} \
     --dataset judgebench \
     ++generation.model_name=${MODEL_PATH} \
     ++eval.output_file=${OUTPUT_FILE} \
-    ++eval.batch_size=256 \
+    ++eval.batch_size=1024 \
     ++generation.vllm_cfg.tensor_parallel_size=1 \
     ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
     ++cluster.gpus_per_node=1 \
@@ -121,19 +93,10 @@ EOF
     # Check if evaluation was successful
     if [ $? -eq 0 ]; then
         echo "✓ Evaluation completed successfully" | tee -a $SUMMARY_FILE
-        
-        # Extract and display accuracy
-        ACCURACY=$(extract_accuracy "$OUTPUT_FILE")
-        echo "Accuracy: $ACCURACY" | tee -a $SUMMARY_FILE
-        
-        # Also save a formatted result
-        echo "${STEP_NAME}: Accuracy = $ACCURACY" >> "${JOB_LOG_DIR}/accuracy_summary.txt"
     else
         echo "✗ Evaluation failed for $STEP_NAME" | tee -a $SUMMARY_FILE
         echo "Check error log: $ERR_FILE" | tee -a $SUMMARY_FILE
     fi
-    
-    echo "" | tee -a $SUMMARY_FILE
 done
 
 echo "======================================" | tee -a $SUMMARY_FILE
@@ -154,4 +117,4 @@ if [ -f "${JOB_LOG_DIR}/accuracy_summary.txt" ]; then
     echo "Sorted by Accuracy (Best to Worst):" | tee -a $SUMMARY_FILE
     echo "-----------------------------------" | tee -a $SUMMARY_FILE
     sort -t'=' -k2 -rn "${JOB_LOG_DIR}/accuracy_summary.txt" | tee -a $SUMMARY_FILE
-fi
+fibatch

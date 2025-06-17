@@ -1,0 +1,469 @@
+2025-06-17 02:53:17,386	WARNING utils.py:594 -- Detecting docker specified CPUs. In previous versions of Ray, CPU detection in containers was incorrect. Please ensure that Ray has enough CPUs allocated. As a temporary workaround to revert to the prior behavior, set `RAY_USE_MULTIPROCESSING_CPU_COUNT=1` as an env var before starting Ray. Set the env var: `RAY_DISABLE_DOCKER_CPU_WARNING=1` to mute this warning.
+2025-06-17 02:53:18,589	INFO worker.py:1832 -- Started a local Ray instance. View the dashboard at [1m[32mhttp://127.0.0.1:8265 [39m[22m
+INFO:nemo_rl.distributed.virtual_cluster:Started local cluster with tag 'nrl_tag_0': {'node:__internal_head__': 1.0, 'nrl_tag_0': 1.0, 'CPU': 16.0, 'node:10.65.31.215': 1.0, 'object_store_memory': 200000000000.0, 'memory': 1951753673728.0, 'GPU': 1.0, 'accelerator_type:H100': 1.0}
+Map:   0%|          | 0/620 [00:00<?, ? examples/s]Map: 100%|██████████| 620/620 [00:00<00:00, 6305.63 examples/s]
+INFO:nemo_rl.utils.venvs:NEMO_RL_VENV_DIR is set to /lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/venvs.
+Using CPython 3.12.9 interpreter at: /home/ray/anaconda3/bin/python3
+Creating virtual environment at: venvs/nemo_rl.models.generation.vllm.VllmGenerationWorker
+warning: `VIRTUAL_ENV=.venv` does not match the project environment path `venvs/nemo_rl.models.generation.vllm.VllmGenerationWorker` and will be ignored; use `--active` to target the active environment instead
+Resolved 313 packages in 13ms
+warning: Failed to uninstall package at venvs/nemo_rl.models.generation.vllm.VllmGenerationWorker/lib/python3.12/site-packages/cupy_cuda12x-13.4.1.dist-info due to missing `RECORD` file. Installation may result in an incomplete environment.
+Uninstalled 73 packages in 3.53s
+ - airportsdata==20250523
+ - anyio==4.9.0
+ - astor==0.8.1
+ - blake3==1.0.5
+ - cloudpickle==3.1.1
+ - compressed-tensors==0.9.3
+ - cupy-cuda12x==13.4.1
+ - deprecated==1.2.18
+ - depyf==0.18.0
+ - diskcache==5.6.3
+ - distro==1.9.0
+ - dnspython==2.7.0
+ - email-validator==2.2.0
+ - fastapi==0.115.12
+ - fastapi-cli==0.0.7
+ - fastrlock==0.8.3
+ - gguf==0.16.3
+ - h11==0.16.0
+ - httpcore==1.0.9
+ - httptools==0.6.4
+ - httpx==0.28.1
+ - importlib-metadata==8.0.0
+ - interegular==0.3.3
+ - jiter==0.10.0
+ - lark==1.2.2
+ - llguidance==0.7.24
+ - llvmlite==0.44.0
+ - lm-format-enforcer==0.10.11
+ - mistral-common==1.5.6
+ - msgspec==0.19.0
+ - nest-asyncio==1.6.0
+ - ninja==1.11.1.4
+ - numba==0.61.2
+ - openai==1.82.0
+ - opencv-python-headless==4.11.0.86
+ - opentelemetry-api==1.26.0
+ - opentelemetry-exporter-otlp==1.26.0
+ - opentelemetry-exporter-otlp-proto-common==1.26.0
+ - opentelemetry-exporter-otlp-proto-grpc==1.26.0
+ - opentelemetry-exporter-otlp-proto-http==1.26.0
+ - opentelemetry-proto==1.26.0
+ - opentelemetry-sdk==1.26.0
+ - opentelemetry-semantic-conventions==0.47b0
+ - opentelemetry-semantic-conventions-ai==0.4.9
+ - outlines==0.1.11
+ - outlines-core==0.1.26
+ - partial-json-parser==0.2.1.1.post5
+ - pillow==11.2.1
+ - prometheus-fastapi-instrumentator==7.1.0
+ - py-cpuinfo==9.0.0
+ - pycountry==24.6.1
+ - python-dotenv==1.1.0
+ - python-json-logger==3.3.0
+ - python-multipart==0.0.20
+ - pyzmq==26.4.0
+ - rich-toolkit==0.14.6
+ - scipy==1.15.3
+ - sentencepiece==0.2.0
+ - shellingham==1.5.4
+ - sniffio==1.3.1
+ - starlette==0.46.2
+ - tiktoken==0.9.0
+ - torchaudio==2.6.0
+ - torchvision==0.21.0
+ - typer==0.16.0
+ - uvicorn==0.34.2
+ - uvloop==0.21.0
+ - vllm==0.8.5
+ - watchfiles==1.0.5
+ - websockets==15.0.1
+ - xformers==0.0.29.post2
+ - xgrammar==0.1.18
+ - zipp==3.22.0
+warning: `VIRTUAL_ENV=.venv` does not match the project environment path `venvs/nemo_rl.models.generation.vllm.VllmGenerationWorker` and will be ignored; use `--active` to target the active environment instead
+Installed 72 packages in 2.53s
+[36m(VllmGenerationWorker pid=1673669)[0m Loading pt checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Loading pt checkpoint shards: 100% Completed | 1/1 [00:28<00:00, 28.37s/it]
+[36m(VllmGenerationWorker pid=1673669)[0m Loading pt checkpoint shards: 100% Completed | 1/1 [00:28<00:00, 28.37s/it]
+[36m(VllmGenerationWorker pid=1673669)[0m 
+  0%|          | 0/1 [00:00<?, ?it/s][36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   0%|          | 0/620 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   0%|          | 1/620 [00:05<57:08,  5.54s/it, est. speed input: 390.93 toks/s, output: 0.18 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   0%|          | 2/620 [00:12<1:07:00,  6.51s/it, est. speed input: 396.14 toks/s, output: 18.00 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   0%|          | 3/620 [00:12<37:30,  3.65s/it, est. speed input: 537.94 toks/s, output: 35.09 toks/s]  
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   1%|          | 4/620 [00:13<24:11,  2.36s/it, est. speed input: 633.27 toks/s, output: 53.52 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   1%|          | 5/620 [00:13<16:16,  1.59s/it, est. speed input: 765.18 toks/s, output: 72.23 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   1%|          | 6/620 [00:13<11:22,  1.11s/it, est. speed input: 896.70 toks/s, output: 91.32 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   1%|          | 7/620 [00:13<08:18,  1.23it/s, est. speed input: 1039.19 toks/s, output: 110.09 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   2%|▏         | 10/620 [00:14<03:46,  2.69it/s, est. speed input: 1373.24 toks/s, output: 168.88 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   2%|▏         | 11/620 [00:14<03:15,  3.11it/s, est. speed input: 1493.51 toks/s, output: 187.40 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   2%|▏         | 13/620 [00:14<02:14,  4.50it/s, est. speed input: 1763.05 toks/s, output: 226.57 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   2%|▏         | 15/620 [00:14<01:45,  5.74it/s, est. speed input: 2005.38 toks/s, output: 264.52 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   3%|▎         | 17/620 [00:14<01:27,  6.92it/s, est. speed input: 2236.84 toks/s, output: 297.83 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   3%|▎         | 19/620 [00:14<01:11,  8.39it/s, est. speed input: 2442.05 toks/s, output: 336.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   3%|▎         | 21/620 [00:15<01:02,  9.59it/s, est. speed input: 2674.35 toks/s, output: 374.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   4%|▎         | 23/620 [00:15<01:11,  8.31it/s, est. speed input: 2871.89 toks/s, output: 407.45 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   4%|▍         | 25/620 [00:15<01:01,  9.67it/s, est. speed input: 3071.07 toks/s, output: 445.81 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   4%|▍         | 27/620 [00:15<01:00,  9.88it/s, est. speed input: 3289.70 toks/s, output: 481.55 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   5%|▍         | 29/620 [00:15<01:06,  8.94it/s, est. speed input: 3527.91 toks/s, output: 515.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   5%|▌         | 31/620 [00:16<01:10,  8.40it/s, est. speed input: 3742.00 toks/s, output: 549.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   5%|▌         | 32/620 [00:16<01:08,  8.64it/s, est. speed input: 3806.06 toks/s, output: 566.51 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   5%|▌         | 34/620 [00:17<01:59,  4.89it/s, est. speed input: 3802.84 toks/s, output: 583.89 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   6%|▌         | 35/620 [00:17<02:35,  3.75it/s, est. speed input: 3820.35 toks/s, output: 589.57 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   6%|▌         | 36/620 [00:19<07:05,  1.37it/s, est. speed input: 3450.62 toks/s, output: 543.74 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   6%|▌         | 37/620 [00:21<08:33,  1.13it/s, est. speed input: 3394.26 toks/s, output: 534.88 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   6%|▌         | 38/620 [00:21<06:39,  1.46it/s, est. speed input: 3452.85 toks/s, output: 558.07 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   6%|▋         | 39/620 [00:22<06:48,  1.42it/s, est. speed input: 3493.72 toks/s, output: 565.61 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   6%|▋         | 40/620 [00:22<06:15,  1.55it/s, est. speed input: 3570.87 toks/s, output: 579.85 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   7%|▋         | 42/620 [00:24<06:52,  1.40it/s, est. speed input: 3621.29 toks/s, output: 594.00 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   7%|▋         | 43/620 [00:28<14:02,  1.46s/it, est. speed input: 3243.27 toks/s, output: 542.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   7%|▋         | 44/620 [00:28<12:25,  1.29s/it, est. speed input: 3264.39 toks/s, output: 557.04 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   7%|▋         | 45/620 [00:30<13:09,  1.37s/it, est. speed input: 3198.23 toks/s, output: 558.59 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   8%|▊         | 47/620 [00:30<07:56,  1.20it/s, est. speed input: 3378.39 toks/s, output: 614.90 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   8%|▊         | 48/620 [00:31<08:14,  1.16it/s, est. speed input: 3373.74 toks/s, output: 626.76 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   8%|▊         | 49/620 [00:34<12:55,  1.36s/it, est. speed input: 3184.94 toks/s, output: 607.17 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   8%|▊         | 50/620 [00:35<11:43,  1.23s/it, est. speed input: 3188.45 toks/s, output: 623.83 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   8%|▊         | 51/620 [00:35<09:39,  1.02s/it, est. speed input: 3230.66 toks/s, output: 648.13 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   8%|▊         | 52/620 [00:38<14:49,  1.57s/it, est. speed input: 3056.65 toks/s, output: 631.80 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   9%|▊         | 53/620 [00:39<11:37,  1.23s/it, est. speed input: 3097.25 toks/s, output: 658.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   9%|▊         | 54/620 [00:40<10:27,  1.11s/it, est. speed input: 3104.03 toks/s, output: 677.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   9%|▉         | 55/620 [00:40<08:38,  1.09it/s, est. speed input: 3136.73 toks/s, output: 703.37 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   9%|▉         | 56/620 [00:41<08:39,  1.09it/s, est. speed input: 3131.87 toks/s, output: 720.87 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:   9%|▉         | 57/620 [00:41<07:07,  1.32it/s, est. speed input: 3168.68 toks/s, output: 747.62 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  10%|▉         | 59/620 [00:43<07:56,  1.18it/s, est. speed input: 3151.43 toks/s, output: 780.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  10%|▉         | 60/620 [00:44<07:29,  1.25it/s, est. speed input: 3163.20 toks/s, output: 802.88 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  10%|█         | 62/620 [00:45<06:08,  1.52it/s, est. speed input: 3213.08 toks/s, output: 853.79 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  10%|█         | 63/620 [00:45<05:41,  1.63it/s, est. speed input: 3236.77 toks/s, output: 879.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  10%|█         | 64/620 [00:45<04:36,  2.01it/s, est. speed input: 3281.83 toks/s, output: 910.54 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  10%|█         | 65/620 [00:46<04:26,  2.08it/s, est. speed input: 3305.79 toks/s, output: 936.04 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  11%|█         | 67/620 [00:46<03:27,  2.66it/s, est. speed input: 3379.74 toks/s, output: 994.20 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  11%|█         | 68/620 [00:47<03:27,  2.66it/s, est. speed input: 3405.87 toks/s, output: 1020.18 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  11%|█         | 69/620 [00:47<03:04,  2.98it/s, est. speed input: 3442.83 toks/s, output: 1049.67 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  11%|█▏        | 70/620 [00:47<02:53,  3.17it/s, est. speed input: 3476.06 toks/s, output: 1077.78 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  11%|█▏        | 71/620 [00:47<02:32,  3.61it/s, est. speed input: 3515.03 toks/s, output: 1107.75 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  12%|█▏        | 72/620 [00:48<03:57,  2.31it/s, est. speed input: 3505.17 toks/s, output: 1122.73 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  12%|█▏        | 73/620 [00:49<04:07,  2.21it/s, est. speed input: 3518.73 toks/s, output: 1145.56 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  12%|█▏        | 74/620 [00:49<03:25,  2.66it/s, est. speed input: 3554.04 toks/s, output: 1175.25 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  12%|█▏        | 75/620 [00:49<02:45,  3.30it/s, est. speed input: 3593.55 toks/s, output: 1206.31 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  12%|█▏        | 76/620 [00:49<02:44,  3.31it/s, est. speed input: 3619.89 toks/s, output: 1233.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  13%|█▎        | 78/620 [00:50<02:17,  3.95it/s, est. speed input: 3687.36 toks/s, output: 1291.31 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  13%|█▎        | 79/620 [00:51<04:31,  1.99it/s, est. speed input: 3642.09 toks/s, output: 1293.87 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  13%|█▎        | 80/620 [00:51<03:35,  2.51it/s, est. speed input: 3679.94 toks/s, output: 1325.28 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  13%|█▎        | 81/620 [00:51<03:07,  2.88it/s, est. speed input: 3710.03 toks/s, output: 1354.20 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  13%|█▎        | 82/620 [00:52<03:45,  2.38it/s, est. speed input: 3711.18 toks/s, output: 1372.54 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  13%|█▎        | 83/620 [00:53<04:28,  2.00it/s, est. speed input: 3705.04 toks/s, output: 1388.63 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  14%|█▎        | 84/620 [00:53<04:24,  2.03it/s, est. speed input: 3714.23 toks/s, output: 1410.64 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  14%|█▎        | 85/620 [00:53<03:25,  2.61it/s, est. speed input: 3748.29 toks/s, output: 1441.72 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  14%|█▍        | 86/620 [00:53<02:41,  3.30it/s, est. speed input: 3782.76 toks/s, output: 1472.80 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  14%|█▍        | 87/620 [00:54<03:38,  2.44it/s, est. speed input: 3777.48 toks/s, output: 1489.04 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  14%|█▍        | 88/620 [00:54<03:24,  2.61it/s, est. speed input: 3795.81 toks/s, output: 1514.59 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  14%|█▍        | 89/620 [00:54<02:49,  3.13it/s, est. speed input: 3824.58 toks/s, output: 1544.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  15%|█▍        | 90/620 [00:55<02:27,  3.60it/s, est. speed input: 3852.13 toks/s, output: 1573.40 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  15%|█▍        | 91/620 [00:55<02:16,  3.89it/s, est. speed input: 3885.11 toks/s, output: 1593.98 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  15%|█▍        | 92/620 [00:56<04:06,  2.14it/s, est. speed input: 3857.45 toks/s, output: 1601.09 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  15%|█▌        | 93/620 [00:56<03:11,  2.76it/s, est. speed input: 3887.65 toks/s, output: 1632.00 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  15%|█▌        | 94/620 [00:57<03:50,  2.29it/s, est. speed input: 3883.43 toks/s, output: 1648.88 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  15%|█▌        | 96/620 [00:57<02:27,  3.55it/s, est. speed input: 3944.80 toks/s, output: 1711.38 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  16%|█▌        | 97/620 [00:57<02:04,  4.20it/s, est. speed input: 3974.82 toks/s, output: 1742.36 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  16%|█▌        | 98/620 [00:57<02:06,  4.13it/s, est. speed input: 3994.28 toks/s, output: 1768.79 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  16%|█▌        | 99/620 [00:57<02:00,  4.32it/s, est. speed input: 4016.93 toks/s, output: 1796.80 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  16%|█▋        | 101/620 [00:58<01:50,  4.68it/s, est. speed input: 4063.33 toks/s, output: 1853.12 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  16%|█▋        | 102/620 [00:58<02:11,  3.94it/s, est. speed input: 4072.73 toks/s, output: 1875.22 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  17%|█▋        | 103/620 [00:58<02:23,  3.59it/s, est. speed input: 4083.84 toks/s, output: 1898.18 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  17%|█▋        | 104/620 [00:59<02:34,  3.35it/s, est. speed input: 4094.39 toks/s, output: 1920.92 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  17%|█▋        | 106/620 [00:59<02:10,  3.95it/s, est. speed input: 4137.36 toks/s, output: 1976.39 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  17%|█▋        | 107/620 [00:59<01:59,  4.29it/s, est. speed input: 4160.18 toks/s, output: 2004.95 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  17%|█▋        | 108/620 [00:59<01:53,  4.50it/s, est. speed input: 4179.70 toks/s, output: 2032.72 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  18%|█▊        | 110/620 [01:00<01:24,  6.03it/s, est. speed input: 4233.75 toks/s, output: 2094.82 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  19%|█▊        | 116/620 [01:00<00:53,  9.38it/s, est. speed input: 4386.87 toks/s, output: 2282.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  19%|█▉        | 120/620 [01:01<00:54,  9.20it/s, est. speed input: 4473.79 toks/s, output: 2399.56 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  20%|██        | 124/620 [01:01<00:50,  9.81it/s, est. speed input: 4563.70 toks/s, output: 2518.98 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  20%|██        | 127/620 [01:01<00:50,  9.77it/s, est. speed input: 4634.58 toks/s, output: 2605.85 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  21%|██▏       | 132/620 [01:02<00:47, 10.29it/s, est. speed input: 4745.13 toks/s, output: 2751.89 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  22%|██▏       | 138/620 [01:02<00:42, 11.44it/s, est. speed input: 4893.67 toks/s, output: 2920.21 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  23%|██▎       | 145/620 [01:03<00:36, 12.85it/s, est. speed input: 5054.62 toks/s, output: 3126.97 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  24%|██▍       | 151/620 [01:03<00:47,  9.96it/s, est. speed input: 5158.60 toks/s, output: 3276.24 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  25%|██▌       | 155/620 [01:05<01:07,  6.94it/s, est. speed input: 5180.54 toks/s, output: 3344.89 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  25%|██▌       | 156/620 [01:06<01:47,  4.33it/s, est. speed input: 5116.51 toks/s, output: 3310.25 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  25%|██▌       | 157/620 [01:07<02:24,  3.20it/s, est. speed input: 5062.56 toks/s, output: 3289.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  25%|██▌       | 158/620 [01:10<04:56,  1.56it/s, est. speed input: 4885.78 toks/s, output: 3156.44 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  26%|██▌       | 159/620 [01:10<04:20,  1.77it/s, est. speed input: 4912.82 toks/s, output: 3171.58 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  26%|██▌       | 160/620 [01:10<03:54,  1.96it/s, est. speed input: 4928.62 toks/s, output: 3163.92 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  26%|██▌       | 161/620 [01:10<03:21,  2.27it/s, est. speed input: 4955.70 toks/s, output: 3160.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  26%|██▌       | 162/620 [01:11<03:08,  2.43it/s, est. speed input: 4973.02 toks/s, output: 3165.19 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  26%|██▋       | 163/620 [01:17<13:47,  1.81s/it, est. speed input: 4608.37 toks/s, output: 2934.14 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  26%|██▋       | 164/620 [01:18<12:35,  1.66s/it, est. speed input: 4558.57 toks/s, output: 2914.84 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  27%|██▋       | 165/620 [01:19<11:18,  1.49s/it, est. speed input: 4537.25 toks/s, output: 2890.06 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  27%|██▋       | 166/620 [01:22<14:49,  1.96s/it, est. speed input: 4401.08 toks/s, output: 2790.52 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  27%|██▋       | 167/620 [01:24<14:50,  1.97s/it, est. speed input: 4317.84 toks/s, output: 2749.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  27%|██▋       | 168/620 [01:25<12:17,  1.63s/it, est. speed input: 4313.44 toks/s, output: 2735.09 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  27%|██▋       | 169/620 [01:25<09:08,  1.22s/it, est. speed input: 4322.12 toks/s, output: 2752.32 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  27%|██▋       | 170/620 [01:27<09:44,  1.30s/it, est. speed input: 4280.00 toks/s, output: 2720.01 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  28%|██▊       | 171/620 [01:27<08:29,  1.14s/it, est. speed input: 4273.34 toks/s, output: 2713.79 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  28%|██▊       | 173/620 [01:28<04:53,  1.52it/s, est. speed input: 4332.12 toks/s, output: 2733.67 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  28%|██▊       | 174/620 [01:28<05:10,  1.44it/s, est. speed input: 4324.04 toks/s, output: 2723.02 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  28%|██▊       | 175/620 [01:29<04:27,  1.66it/s, est. speed input: 4328.81 toks/s, output: 2735.69 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  28%|██▊       | 176/620 [01:29<03:34,  2.07it/s, est. speed input: 4344.66 toks/s, output: 2752.68 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  29%|██▊       | 177/620 [01:29<02:47,  2.65it/s, est. speed input: 4372.83 toks/s, output: 2762.07 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  29%|██▊       | 178/620 [01:29<02:38,  2.80it/s, est. speed input: 4389.69 toks/s, output: 2766.24 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  29%|██▉       | 179/620 [01:30<02:29,  2.95it/s, est. speed input: 4389.70 toks/s, output: 2779.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  29%|██▉       | 180/620 [01:30<02:09,  3.39it/s, est. speed input: 4411.62 toks/s, output: 2788.42 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  29%|██▉       | 181/620 [01:30<02:08,  3.42it/s, est. speed input: 4422.91 toks/s, output: 2799.49 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|██▉       | 183/620 [01:31<02:17,  3.18it/s, est. speed input: 4453.87 toks/s, output: 2804.42 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|██▉       | 184/620 [01:31<02:38,  2.75it/s, est. speed input: 4460.30 toks/s, output: 2802.00 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|██▉       | 185/620 [01:33<04:19,  1.68it/s, est. speed input: 4430.07 toks/s, output: 2778.23 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|███       | 186/620 [01:33<03:22,  2.14it/s, est. speed input: 4455.68 toks/s, output: 2787.40 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|███       | 187/620 [01:33<02:44,  2.63it/s, est. speed input: 4473.62 toks/s, output: 2800.95 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|███       | 188/620 [01:33<02:43,  2.64it/s, est. speed input: 4486.38 toks/s, output: 2802.73 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  30%|███       | 189/620 [01:34<03:11,  2.26it/s, est. speed input: 4477.28 toks/s, output: 2806.59 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  31%|███       | 190/620 [01:34<03:34,  2.00it/s, est. speed input: 4477.33 toks/s, output: 2800.97 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  31%|███       | 191/620 [01:35<03:03,  2.34it/s, est. speed input: 4495.07 toks/s, output: 2806.65 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  31%|███       | 192/620 [01:35<02:33,  2.79it/s, est. speed input: 4508.78 toks/s, output: 2821.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  31%|███       | 193/620 [01:35<02:11,  3.25it/s, est. speed input: 4527.25 toks/s, output: 2831.02 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  31%|███▏      | 194/620 [01:36<03:27,  2.05it/s, est. speed input: 4513.54 toks/s, output: 2817.84 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  31%|███▏      | 195/620 [01:36<03:16,  2.16it/s, est. speed input: 4517.35 toks/s, output: 2825.64 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  32%|███▏      | 196/620 [01:38<06:07,  1.15it/s, est. speed input: 4461.77 toks/s, output: 2787.94 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  32%|███▏      | 197/620 [01:38<04:31,  1.56it/s, est. speed input: 4483.79 toks/s, output: 2798.82 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  32%|███▏      | 198/620 [01:38<03:23,  2.08it/s, est. speed input: 4503.36 toks/s, output: 2812.74 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  32%|███▏      | 199/620 [01:39<03:25,  2.05it/s, est. speed input: 4507.42 toks/s, output: 2812.80 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  32%|███▏      | 200/620 [01:39<02:40,  2.62it/s, est. speed input: 4528.25 toks/s, output: 2823.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  32%|███▏      | 201/620 [01:39<02:32,  2.75it/s, est. speed input: 4532.66 toks/s, output: 2834.81 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  33%|███▎      | 202/620 [01:40<02:03,  3.39it/s, est. speed input: 4552.40 toks/s, output: 2846.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  33%|███▎      | 203/620 [01:41<03:46,  1.84it/s, est. speed input: 4527.69 toks/s, output: 2829.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  33%|███▎      | 204/620 [01:41<02:53,  2.40it/s, est. speed input: 4548.14 toks/s, output: 2840.48 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  33%|███▎      | 205/620 [01:41<02:20,  2.96it/s, est. speed input: 4558.90 toks/s, output: 2856.35 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  33%|███▎      | 207/620 [01:42<02:06,  3.27it/s, est. speed input: 4587.47 toks/s, output: 2869.08 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  34%|███▎      | 208/620 [01:42<01:54,  3.60it/s, est. speed input: 4602.57 toks/s, output: 2880.07 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  34%|███▎      | 209/620 [01:42<02:23,  2.87it/s, est. speed input: 4602.97 toks/s, output: 2879.55 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  34%|███▍      | 210/620 [01:42<02:05,  3.26it/s, est. speed input: 4619.12 toks/s, output: 2889.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  34%|███▍      | 211/620 [01:43<02:19,  2.94it/s, est. speed input: 4624.72 toks/s, output: 2892.14 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  34%|███▍      | 212/620 [01:43<02:33,  2.66it/s, est. speed input: 4628.28 toks/s, output: 2894.26 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  34%|███▍      | 213/620 [01:44<02:09,  3.15it/s, est. speed input: 4644.78 toks/s, output: 2904.53 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  35%|███▍      | 214/620 [01:44<02:14,  3.02it/s, est. speed input: 4652.70 toks/s, output: 2909.64 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  35%|███▍      | 215/620 [01:44<01:57,  3.43it/s, est. speed input: 4667.07 toks/s, output: 2920.20 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  35%|███▌      | 217/620 [01:44<01:31,  4.41it/s, est. speed input: 4698.68 toks/s, output: 2945.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  35%|███▌      | 218/620 [01:45<01:28,  4.53it/s, est. speed input: 4713.37 toks/s, output: 2954.56 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  35%|███▌      | 220/620 [01:45<01:13,  5.46it/s, est. speed input: 4748.41 toks/s, output: 2978.42 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  36%|███▌      | 221/620 [01:45<01:24,  4.71it/s, est. speed input: 4757.95 toks/s, output: 2984.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  36%|███▌      | 222/620 [01:45<01:24,  4.72it/s, est. speed input: 4771.85 toks/s, output: 2994.26 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  36%|███▌      | 223/620 [01:46<01:31,  4.32it/s, est. speed input: 4782.21 toks/s, output: 3001.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  36%|███▌      | 224/620 [01:46<01:23,  4.75it/s, est. speed input: 4798.42 toks/s, output: 3012.54 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  37%|███▋      | 227/620 [01:46<01:20,  4.87it/s, est. speed input: 4838.24 toks/s, output: 3043.61 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  37%|███▋      | 228/620 [01:47<01:33,  4.18it/s, est. speed input: 4844.22 toks/s, output: 3048.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  37%|███▋      | 229/620 [01:47<01:22,  4.76it/s, est. speed input: 4860.68 toks/s, output: 3062.12 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  37%|███▋      | 230/620 [01:47<01:38,  3.95it/s, est. speed input: 4865.81 toks/s, output: 3066.57 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  37%|███▋      | 231/620 [01:48<02:08,  3.03it/s, est. speed input: 4863.24 toks/s, output: 3066.46 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  37%|███▋      | 232/620 [01:48<01:55,  3.36it/s, est. speed input: 4876.07 toks/s, output: 3076.21 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  38%|███▊      | 233/620 [01:48<01:36,  3.99it/s, est. speed input: 4892.27 toks/s, output: 3088.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  38%|███▊      | 234/620 [01:48<01:26,  4.48it/s, est. speed input: 4907.15 toks/s, output: 3099.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  38%|███▊      | 236/620 [01:49<01:14,  5.13it/s, est. speed input: 4936.66 toks/s, output: 3121.76 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  38%|███▊      | 237/620 [01:49<02:03,  3.10it/s, est. speed input: 4927.29 toks/s, output: 3115.47 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  38%|███▊      | 238/620 [01:50<01:52,  3.39it/s, est. speed input: 4938.43 toks/s, output: 3125.90 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  39%|███▊      | 239/620 [01:50<02:09,  2.94it/s, est. speed input: 4938.94 toks/s, output: 3128.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  39%|███▊      | 240/620 [01:50<02:05,  3.02it/s, est. speed input: 4945.48 toks/s, output: 3136.64 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  39%|███▉      | 241/620 [01:51<01:49,  3.47it/s, est. speed input: 4958.40 toks/s, output: 3147.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  39%|███▉      | 242/620 [01:51<01:33,  4.03it/s, est. speed input: 4972.68 toks/s, output: 3159.23 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  39%|███▉      | 243/620 [01:51<01:33,  4.05it/s, est. speed input: 4982.60 toks/s, output: 3168.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  39%|███▉      | 244/620 [01:51<01:46,  3.52it/s, est. speed input: 4991.53 toks/s, output: 3168.68 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  40%|███▉      | 245/620 [01:52<01:44,  3.58it/s, est. speed input: 5000.10 toks/s, output: 3177.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  40%|███▉      | 246/620 [01:53<03:07,  2.00it/s, est. speed input: 4972.14 toks/s, output: 3166.51 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  40%|███▉      | 247/620 [01:53<02:55,  2.12it/s, est. speed input: 4975.03 toks/s, output: 3170.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  40%|████      | 250/620 [01:54<02:41,  2.29it/s, est. speed input: 4981.80 toks/s, output: 3183.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  40%|████      | 251/620 [01:54<02:23,  2.58it/s, est. speed input: 4986.47 toks/s, output: 3180.38 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  41%|████      | 252/620 [01:55<02:06,  2.91it/s, est. speed input: 4990.95 toks/s, output: 3177.40 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  41%|████      | 254/620 [01:55<01:35,  3.85it/s, est. speed input: 5014.06 toks/s, output: 3189.36 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  41%|████▏     | 256/620 [01:55<01:22,  4.41it/s, est. speed input: 5031.68 toks/s, output: 3198.72 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  41%|████▏     | 257/620 [01:55<01:15,  4.82it/s, est. speed input: 5044.55 toks/s, output: 3211.72 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  42%|████▏     | 259/620 [01:56<01:03,  5.72it/s, est. speed input: 5065.72 toks/s, output: 3224.23 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  42%|████▏     | 260/620 [01:56<01:12,  4.99it/s, est. speed input: 5064.16 toks/s, output: 3218.52 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  42%|████▏     | 262/620 [01:56<00:58,  6.11it/s, est. speed input: 5084.65 toks/s, output: 3232.88 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  42%|████▏     | 263/620 [01:56<01:07,  5.28it/s, est. speed input: 5084.70 toks/s, output: 3242.49 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  43%|████▎     | 265/620 [01:57<00:54,  6.52it/s, est. speed input: 5105.42 toks/s, output: 3257.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  43%|████▎     | 267/620 [01:57<00:43,  8.11it/s, est. speed input: 5124.33 toks/s, output: 3259.62 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  44%|████▍     | 273/620 [01:57<00:28, 12.06it/s, est. speed input: 5196.45 toks/s, output: 3295.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  44%|████▍     | 275/620 [01:57<00:39,  8.83it/s, est. speed input: 5206.43 toks/s, output: 3303.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  45%|████▍     | 276/620 [01:58<00:44,  7.65it/s, est. speed input: 5212.73 toks/s, output: 3313.77 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  45%|████▍     | 278/620 [01:58<00:49,  6.93it/s, est. speed input: 5221.26 toks/s, output: 3309.59 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  45%|████▌     | 279/620 [01:59<01:12,  4.73it/s, est. speed input: 5209.83 toks/s, output: 3297.90 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  45%|████▌     | 280/620 [01:59<01:04,  5.25it/s, est. speed input: 5222.63 toks/s, output: 3312.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  45%|████▌     | 281/620 [01:59<01:03,  5.31it/s, est. speed input: 5225.59 toks/s, output: 3309.24 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  46%|████▌     | 283/620 [01:59<01:03,  5.34it/s, est. speed input: 5236.60 toks/s, output: 3320.04 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  46%|████▌     | 285/620 [01:59<00:46,  7.16it/s, est. speed input: 5261.81 toks/s, output: 3337.67 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  46%|████▋     | 287/620 [02:00<00:40,  8.24it/s, est. speed input: 5283.98 toks/s, output: 3367.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  47%|████▋     | 290/620 [02:00<00:37,  8.84it/s, est. speed input: 5318.52 toks/s, output: 3409.58 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  47%|████▋     | 293/620 [02:00<00:34,  9.53it/s, est. speed input: 5351.80 toks/s, output: 3452.79 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  48%|████▊     | 295/620 [02:00<00:29, 11.00it/s, est. speed input: 5376.66 toks/s, output: 3470.53 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  48%|████▊     | 297/620 [02:01<00:57,  5.59it/s, est. speed input: 5368.68 toks/s, output: 3466.53 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  48%|████▊     | 298/620 [02:01<00:58,  5.50it/s, est. speed input: 5373.27 toks/s, output: 3463.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  48%|████▊     | 300/620 [02:02<01:05,  4.85it/s, est. speed input: 5382.93 toks/s, output: 3465.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  49%|████▊     | 301/620 [02:02<01:35,  3.35it/s, est. speed input: 5370.49 toks/s, output: 3460.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  49%|████▊     | 302/620 [02:03<01:33,  3.39it/s, est. speed input: 5368.75 toks/s, output: 3455.02 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  49%|████▉     | 303/620 [02:03<01:23,  3.79it/s, est. speed input: 5374.17 toks/s, output: 3452.35 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  49%|████▉     | 304/620 [02:03<01:15,  4.17it/s, est. speed input: 5381.37 toks/s, output: 3450.75 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  49%|████▉     | 306/620 [02:03<00:57,  5.44it/s, est. speed input: 5402.45 toks/s, output: 3453.75 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  50%|████▉     | 307/620 [02:04<01:01,  5.06it/s, est. speed input: 5410.21 toks/s, output: 3461.58 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  50%|████▉     | 308/620 [02:04<01:14,  4.20it/s, est. speed input: 5409.51 toks/s, output: 3456.46 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  50%|████▉     | 309/620 [02:04<01:15,  4.12it/s, est. speed input: 5412.46 toks/s, output: 3451.78 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  50%|█████     | 310/620 [02:04<01:03,  4.89it/s, est. speed input: 5420.13 toks/s, output: 3452.37 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  50%|█████     | 311/620 [02:04<01:02,  4.95it/s, est. speed input: 5422.95 toks/s, output: 3452.28 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  50%|█████     | 312/620 [02:05<00:53,  5.77it/s, est. speed input: 5429.78 toks/s, output: 3453.04 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  51%|█████     | 314/620 [02:05<00:40,  7.50it/s, est. speed input: 5456.23 toks/s, output: 3461.86 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  51%|█████     | 316/620 [02:05<00:34,  8.83it/s, est. speed input: 5477.72 toks/s, output: 3461.72 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  51%|█████     | 317/620 [02:05<00:38,  7.93it/s, est. speed input: 5481.05 toks/s, output: 3458.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  51%|█████▏    | 318/620 [02:06<01:15,  3.99it/s, est. speed input: 5465.37 toks/s, output: 3443.81 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  51%|█████▏    | 319/620 [02:06<01:07,  4.49it/s, est. speed input: 5469.69 toks/s, output: 3442.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  52%|█████▏    | 320/620 [02:06<01:02,  4.83it/s, est. speed input: 5475.01 toks/s, output: 3440.69 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  52%|█████▏    | 322/620 [02:06<00:53,  5.55it/s, est. speed input: 5496.38 toks/s, output: 3448.68 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  52%|█████▏    | 323/620 [02:07<01:00,  4.87it/s, est. speed input: 5496.73 toks/s, output: 3443.26 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  52%|█████▏    | 325/620 [02:07<01:26,  3.42it/s, est. speed input: 5490.46 toks/s, output: 3436.07 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  53%|█████▎    | 327/620 [02:08<01:04,  4.54it/s, est. speed input: 5516.68 toks/s, output: 3441.54 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  53%|█████▎    | 328/620 [02:08<00:58,  4.96it/s, est. speed input: 5523.95 toks/s, output: 3440.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  53%|█████▎    | 329/620 [02:08<01:01,  4.73it/s, est. speed input: 5525.56 toks/s, output: 3437.19 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  53%|█████▎    | 330/620 [02:08<01:09,  4.18it/s, est. speed input: 5525.04 toks/s, output: 3431.22 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  54%|█████▎    | 333/620 [02:09<00:46,  6.12it/s, est. speed input: 5548.49 toks/s, output: 3431.67 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  54%|█████▍    | 334/620 [02:09<00:53,  5.39it/s, est. speed input: 5552.07 toks/s, output: 3427.45 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  54%|█████▍    | 335/620 [02:09<01:01,  4.62it/s, est. speed input: 5553.24 toks/s, output: 3421.26 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  54%|█████▍    | 336/620 [02:09<01:04,  4.41it/s, est. speed input: 5554.26 toks/s, output: 3430.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  54%|█████▍    | 337/620 [02:10<01:03,  4.46it/s, est. speed input: 5556.23 toks/s, output: 3427.53 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  55%|█████▍    | 338/620 [02:10<00:54,  5.14it/s, est. speed input: 5562.49 toks/s, output: 3427.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  55%|█████▌    | 341/620 [02:10<00:32,  8.58it/s, est. speed input: 5589.93 toks/s, output: 3431.02 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  55%|█████▌    | 343/620 [02:10<00:40,  6.81it/s, est. speed input: 5594.48 toks/s, output: 3425.45 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  55%|█████▌    | 344/620 [02:11<00:55,  4.97it/s, est. speed input: 5587.60 toks/s, output: 3416.42 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  56%|█████▌    | 345/620 [02:12<01:32,  2.98it/s, est. speed input: 5566.84 toks/s, output: 3398.32 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  56%|█████▌    | 347/620 [02:12<01:05,  4.20it/s, est. speed input: 5589.22 toks/s, output: 3409.57 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  56%|█████▌    | 348/620 [02:12<01:01,  4.41it/s, est. speed input: 5597.48 toks/s, output: 3419.71 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  56%|█████▋    | 349/620 [02:13<01:37,  2.77it/s, est. speed input: 5582.13 toks/s, output: 3411.90 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  56%|█████▋    | 350/620 [02:13<01:28,  3.03it/s, est. speed input: 5584.80 toks/s, output: 3408.40 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  57%|█████▋    | 351/620 [02:13<01:41,  2.65it/s, est. speed input: 5573.97 toks/s, output: 3397.90 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  57%|█████▋    | 352/620 [02:14<02:19,  1.92it/s, est. speed input: 5553.22 toks/s, output: 3389.18 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  57%|█████▋    | 353/620 [02:15<02:19,  1.91it/s, est. speed input: 5541.62 toks/s, output: 3378.04 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  57%|█████▋    | 355/620 [02:15<01:28,  2.98it/s, est. speed input: 5564.32 toks/s, output: 3385.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  57%|█████▋    | 356/620 [02:17<02:50,  1.55it/s, est. speed input: 5510.91 toks/s, output: 3360.77 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  58%|█████▊    | 357/620 [02:18<03:09,  1.39it/s, est. speed input: 5491.17 toks/s, output: 3350.30 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  58%|█████▊    | 358/620 [02:18<02:56,  1.48it/s, est. speed input: 5486.26 toks/s, output: 3349.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  58%|█████▊    | 359/620 [02:19<03:37,  1.20it/s, est. speed input: 5457.92 toks/s, output: 3328.92 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  58%|█████▊    | 360/620 [02:21<04:21,  1.01s/it, est. speed input: 5413.95 toks/s, output: 3309.36 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  58%|█████▊    | 361/620 [02:21<03:33,  1.22it/s, est. speed input: 5415.08 toks/s, output: 3314.24 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  59%|█████▊    | 363/620 [02:24<04:43,  1.10s/it, est. speed input: 5337.46 toks/s, output: 3272.20 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  59%|█████▊    | 364/620 [02:24<03:45,  1.13it/s, est. speed input: 5346.29 toks/s, output: 3280.19 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  59%|█████▉    | 365/620 [02:25<03:05,  1.37it/s, est. speed input: 5353.88 toks/s, output: 3283.92 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  59%|█████▉    | 366/620 [02:25<02:26,  1.74it/s, est. speed input: 5365.71 toks/s, output: 3290.58 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  59%|█████▉    | 367/620 [02:25<01:56,  2.16it/s, est. speed input: 5376.38 toks/s, output: 3298.06 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  59%|█████▉    | 368/620 [02:28<05:05,  1.21s/it, est. speed input: 5280.60 toks/s, output: 3240.66 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|█████▉    | 369/620 [02:28<03:46,  1.11it/s, est. speed input: 5291.43 toks/s, output: 3249.13 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|█████▉    | 370/620 [02:28<02:52,  1.45it/s, est. speed input: 5301.92 toks/s, output: 3256.21 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|█████▉    | 371/620 [02:30<03:28,  1.19it/s, est. speed input: 5275.96 toks/s, output: 3241.17 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|██████    | 372/620 [02:30<02:42,  1.52it/s, est. speed input: 5284.36 toks/s, output: 3247.56 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|██████    | 373/620 [02:32<04:42,  1.14s/it, est. speed input: 5217.18 toks/s, output: 3212.08 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|██████    | 374/620 [02:33<04:13,  1.03s/it, est. speed input: 5203.21 toks/s, output: 3209.52 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  60%|██████    | 375/620 [02:35<05:54,  1.45s/it, est. speed input: 5134.03 toks/s, output: 3172.75 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  61%|██████    | 376/620 [02:38<08:01,  1.97s/it, est. speed input: 5043.07 toks/s, output: 3121.60 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  61%|██████    | 377/620 [02:39<06:44,  1.67s/it, est. speed input: 5027.19 toks/s, output: 3114.86 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  61%|██████    | 378/620 [02:40<04:54,  1.22s/it, est. speed input: 5034.06 toks/s, output: 3124.25 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  61%|██████    | 379/620 [02:40<03:39,  1.10it/s, est. speed input: 5035.88 toks/s, output: 3133.34 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  61%|██████▏   | 380/620 [02:40<02:41,  1.49it/s, est. speed input: 5041.60 toks/s, output: 3143.78 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  62%|██████▏   | 382/620 [02:40<01:48,  2.20it/s, est. speed input: 5046.32 toks/s, output: 3161.38 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  62%|██████▏   | 383/620 [02:41<01:32,  2.57it/s, est. speed input: 5047.66 toks/s, output: 3170.43 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  62%|██████▏   | 384/620 [02:41<01:34,  2.51it/s, est. speed input: 5041.95 toks/s, output: 3174.71 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  62%|██████▏   | 386/620 [02:41<01:04,  3.60it/s, est. speed input: 5052.13 toks/s, output: 3195.53 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  63%|██████▎   | 388/620 [02:41<00:49,  4.71it/s, est. speed input: 5067.56 toks/s, output: 3216.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  63%|██████▎   | 389/620 [02:42<00:50,  4.57it/s, est. speed input: 5068.24 toks/s, output: 3224.33 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  63%|██████▎   | 390/620 [02:42<00:46,  5.00it/s, est. speed input: 5072.20 toks/s, output: 3234.18 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  63%|██████▎   | 392/620 [02:42<00:36,  6.25it/s, est. speed input: 5084.12 toks/s, output: 3255.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  63%|██████▎   | 393/620 [02:42<00:34,  6.62it/s, est. speed input: 5089.81 toks/s, output: 3265.62 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  64%|██████▎   | 395/620 [02:42<00:28,  8.00it/s, est. speed input: 5102.24 toks/s, output: 3287.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  64%|██████▍   | 398/620 [02:43<00:24,  9.05it/s, est. speed input: 5118.38 toks/s, output: 3319.47 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  64%|██████▍   | 399/620 [02:43<00:24,  9.11it/s, est. speed input: 5124.53 toks/s, output: 3329.85 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  65%|██████▍   | 401/620 [02:43<00:26,  8.28it/s, est. speed input: 5131.62 toks/s, output: 3349.12 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  65%|██████▌   | 403/620 [02:43<00:22,  9.47it/s, est. speed input: 5144.49 toks/s, output: 3371.13 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  65%|██████▌   | 405/620 [02:43<00:21, 10.17it/s, est. speed input: 5156.27 toks/s, output: 3392.74 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  66%|██████▌   | 407/620 [02:43<00:18, 11.65it/s, est. speed input: 5170.20 toks/s, output: 3415.33 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  66%|██████▌   | 409/620 [02:44<00:25,  8.32it/s, est. speed input: 5173.07 toks/s, output: 3432.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  66%|██████▋   | 411/620 [02:44<00:32,  6.45it/s, est. speed input: 5179.09 toks/s, output: 3447.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  66%|██████▋   | 412/620 [02:44<00:32,  6.48it/s, est. speed input: 5183.08 toks/s, output: 3456.41 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  67%|██████▋   | 415/620 [02:45<00:28,  7.27it/s, est. speed input: 5198.26 toks/s, output: 3475.33 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  67%|██████▋   | 417/620 [02:45<00:32,  6.30it/s, est. speed input: 5204.18 toks/s, output: 3491.24 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  67%|██████▋   | 418/620 [02:45<00:33,  6.12it/s, est. speed input: 5206.81 toks/s, output: 3499.68 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  68%|██████▊   | 419/620 [02:46<00:49,  4.05it/s, est. speed input: 5198.50 toks/s, output: 3499.69 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  68%|██████▊   | 420/620 [02:46<00:44,  4.46it/s, est. speed input: 5208.30 toks/s, output: 3506.94 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  68%|██████▊   | 421/620 [02:46<00:48,  4.12it/s, est. speed input: 5209.31 toks/s, output: 3512.86 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  68%|██████▊   | 423/620 [02:47<00:35,  5.62it/s, est. speed input: 5224.40 toks/s, output: 3533.89 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  69%|██████▊   | 426/620 [02:47<00:27,  6.93it/s, est. speed input: 5243.08 toks/s, output: 3563.92 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  69%|██████▉   | 430/620 [02:47<00:25,  7.33it/s, est. speed input: 5266.03 toks/s, output: 3601.90 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  70%|██████▉   | 431/620 [02:48<00:31,  5.91it/s, est. speed input: 5263.85 toks/s, output: 3606.26 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  70%|██████▉   | 432/620 [02:48<00:41,  4.48it/s, est. speed input: 5256.97 toks/s, output: 3607.99 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  70%|██████▉   | 433/620 [02:49<01:03,  2.97it/s, est. speed input: 5240.23 toks/s, output: 3602.95 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  70%|███████   | 434/620 [02:49<00:54,  3.43it/s, est. speed input: 5244.96 toks/s, output: 3612.30 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  70%|███████   | 437/620 [02:49<00:36,  5.01it/s, est. speed input: 5261.27 toks/s, output: 3641.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  71%|███████   | 439/620 [02:50<00:35,  5.12it/s, est. speed input: 5267.74 toks/s, output: 3658.07 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  71%|███████   | 440/620 [02:50<00:45,  3.97it/s, est. speed input: 5262.25 toks/s, output: 3659.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  71%|███████   | 441/620 [02:51<00:53,  3.33it/s, est. speed input: 5256.86 toks/s, output: 3660.86 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  71%|███████▏  | 442/620 [02:51<01:00,  2.94it/s, est. speed input: 5251.61 toks/s, output: 3662.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  71%|███████▏  | 443/620 [02:52<00:57,  3.08it/s, est. speed input: 5253.33 toks/s, output: 3668.71 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  72%|███████▏  | 444/620 [02:52<00:56,  3.13it/s, est. speed input: 5252.44 toks/s, output: 3663.76 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  72%|███████▏  | 445/620 [02:53<01:28,  1.98it/s, est. speed input: 5232.22 toks/s, output: 3654.34 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  72%|███████▏  | 446/620 [02:53<01:27,  1.98it/s, est. speed input: 5225.92 toks/s, output: 3655.54 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  72%|███████▏  | 447/620 [02:54<01:13,  2.34it/s, est. speed input: 5231.10 toks/s, output: 3651.96 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  72%|███████▏  | 448/620 [02:54<01:01,  2.81it/s, est. speed input: 5235.02 toks/s, output: 3659.87 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  73%|███████▎  | 451/620 [02:54<00:37,  4.54it/s, est. speed input: 5251.47 toks/s, output: 3678.03 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  73%|███████▎  | 452/620 [02:54<00:34,  4.86it/s, est. speed input: 5256.22 toks/s, output: 3686.57 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  73%|███████▎  | 453/620 [02:54<00:32,  5.06it/s, est. speed input: 5260.84 toks/s, output: 3684.93 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  73%|███████▎  | 454/620 [02:55<00:29,  5.56it/s, est. speed input: 5267.90 toks/s, output: 3684.17 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  73%|███████▎  | 455/620 [02:55<00:26,  6.26it/s, est. speed input: 5274.55 toks/s, output: 3693.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  74%|███████▎  | 456/620 [02:55<00:27,  5.99it/s, est. speed input: 5277.38 toks/s, output: 3701.45 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  74%|███████▎  | 457/620 [02:55<00:26,  6.25it/s, est. speed input: 5280.94 toks/s, output: 3710.13 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  74%|███████▍  | 460/620 [02:55<00:17,  9.40it/s, est. speed input: 5301.10 toks/s, output: 3741.20 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  75%|███████▌  | 468/620 [02:55<00:07, 19.75it/s, est. speed input: 5363.53 toks/s, output: 3830.32 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  76%|███████▌  | 471/620 [02:56<00:14, 10.50it/s, est. speed input: 5369.21 toks/s, output: 3830.83 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  76%|███████▋  | 473/620 [02:57<00:18,  7.94it/s, est. speed input: 5377.82 toks/s, output: 3832.61 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  77%|███████▋  | 475/620 [02:57<00:17,  8.24it/s, est. speed input: 5388.67 toks/s, output: 3841.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  77%|███████▋  | 477/620 [02:57<00:15,  9.44it/s, est. speed input: 5405.92 toks/s, output: 3852.64 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  77%|███████▋  | 479/620 [02:57<00:14, 10.06it/s, est. speed input: 5420.23 toks/s, output: 3862.61 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  78%|███████▊  | 485/620 [02:57<00:07, 17.41it/s, est. speed input: 5477.00 toks/s, output: 3929.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  79%|███████▉  | 492/620 [02:58<00:08, 15.56it/s, est. speed input: 5525.10 toks/s, output: 3998.63 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  80%|███████▉  | 495/620 [02:59<00:17,  7.06it/s, est. speed input: 5514.28 toks/s, output: 3987.97 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  80%|████████  | 497/620 [02:59<00:17,  7.02it/s, est. speed input: 5523.52 toks/s, output: 3995.19 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  80%|████████  | 499/620 [03:00<00:21,  5.54it/s, est. speed input: 5520.94 toks/s, output: 3983.08 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  81%|████████  | 500/620 [03:00<00:24,  4.84it/s, est. speed input: 5516.58 toks/s, output: 3985.77 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  81%|████████  | 502/620 [03:01<00:30,  3.84it/s, est. speed input: 5512.38 toks/s, output: 3980.54 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  81%|████████  | 503/620 [03:02<00:40,  2.89it/s, est. speed input: 5496.35 toks/s, output: 3974.30 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  81%|████████▏ | 504/620 [03:03<00:47,  2.43it/s, est. speed input: 5482.85 toks/s, output: 3970.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  81%|████████▏ | 505/620 [03:03<00:50,  2.29it/s, est. speed input: 5475.42 toks/s, output: 3969.85 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  82%|████████▏ | 506/620 [03:05<01:17,  1.47it/s, est. speed input: 5440.19 toks/s, output: 3948.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  82%|████████▏ | 507/620 [03:07<02:04,  1.10s/it, est. speed input: 5381.69 toks/s, output: 3909.61 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  82%|████████▏ | 508/620 [03:10<03:00,  1.61s/it, est. speed input: 5303.72 toks/s, output: 3857.75 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  82%|████████▏ | 509/620 [03:12<03:06,  1.68s/it, est. speed input: 5258.67 toks/s, output: 3830.55 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  82%|████████▏ | 510/620 [03:13<02:59,  1.63s/it, est. speed input: 5225.95 toks/s, output: 3811.65 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  82%|████████▏ | 511/620 [03:15<02:55,  1.61s/it, est. speed input: 5192.19 toks/s, output: 3791.62 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  83%|████████▎ | 512/620 [03:16<02:39,  1.48s/it, est. speed input: 5169.17 toks/s, output: 3779.68 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  83%|████████▎ | 513/620 [03:17<02:23,  1.34s/it, est. speed input: 5150.70 toks/s, output: 3771.02 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  83%|████████▎ | 514/620 [03:19<02:33,  1.45s/it, est. speed input: 5116.27 toks/s, output: 3748.68 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  83%|████████▎ | 515/620 [03:20<02:24,  1.37s/it, est. speed input: 5093.66 toks/s, output: 3736.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  83%|████████▎ | 516/620 [03:21<02:21,  1.36s/it, est. speed input: 5068.89 toks/s, output: 3722.47 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  84%|████████▎ | 518/620 [03:24<02:09,  1.27s/it, est. speed input: 5032.02 toks/s, output: 3699.61 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  84%|████████▎ | 519/620 [03:26<02:40,  1.59s/it, est. speed input: 4977.96 toks/s, output: 3663.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  84%|████████▍ | 520/620 [03:28<02:35,  1.55s/it, est. speed input: 4950.39 toks/s, output: 3647.71 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  84%|████████▍ | 521/620 [03:28<02:14,  1.36s/it, est. speed input: 4938.37 toks/s, output: 3643.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  84%|████████▍ | 522/620 [03:29<02:00,  1.23s/it, est. speed input: 4923.97 toks/s, output: 3637.35 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  84%|████████▍ | 523/620 [03:30<01:30,  1.07it/s, est. speed input: 4931.46 toks/s, output: 3641.35 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  85%|████████▍ | 524/620 [03:31<01:32,  1.03it/s, est. speed input: 4915.07 toks/s, output: 3632.92 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  85%|████████▍ | 526/620 [03:31<00:52,  1.80it/s, est. speed input: 4933.04 toks/s, output: 3649.05 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  85%|████████▌ | 528/620 [03:31<00:39,  2.30it/s, est. speed input: 4940.74 toks/s, output: 3658.15 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  86%|████████▌ | 533/620 [03:31<00:16,  5.16it/s, est. speed input: 4975.49 toks/s, output: 3704.56 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  87%|████████▋ | 538/620 [03:31<00:09,  8.52it/s, est. speed input: 5011.25 toks/s, output: 3750.62 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  90%|████████▉ | 556/620 [03:32<00:02, 24.94it/s, est. speed input: 5143.27 toks/s, output: 3922.18 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  91%|█████████ | 562/620 [03:32<00:02, 22.04it/s, est. speed input: 5176.86 toks/s, output: 3973.24 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  91%|█████████▏| 567/620 [03:32<00:02, 25.22it/s, est. speed input: 5211.51 toks/s, output: 4019.50 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  92%|█████████▏| 572/620 [03:32<00:01, 24.39it/s, est. speed input: 5243.85 toks/s, output: 4063.36 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  93%|█████████▎| 576/620 [03:33<00:02, 16.18it/s, est. speed input: 5264.34 toks/s, output: 4091.38 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  93%|█████████▎| 579/620 [03:33<00:02, 16.81it/s, est. speed input: 5284.22 toks/s, output: 4116.02 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  96%|█████████▌| 596/620 [03:33<00:00, 31.05it/s, est. speed input: 5405.81 toks/s, output: 4274.16 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  97%|█████████▋| 600/620 [03:34<00:01, 17.91it/s, est. speed input: 5416.12 toks/s, output: 4298.67 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  98%|█████████▊| 606/620 [03:34<00:00, 21.32it/s, est. speed input: 5458.46 toks/s, output: 4353.27 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  98%|█████████▊| 610/620 [03:35<00:01,  9.40it/s, est. speed input: 5455.31 toks/s, output: 4363.70 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  99%|█████████▉| 613/620 [03:36<00:00, 10.33it/s, est. speed input: 5473.44 toks/s, output: 4388.98 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts:  99%|█████████▉| 616/620 [03:36<00:00, 11.07it/s, est. speed input: 5493.64 toks/s, output: 4413.43 toks/s]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts: 100%|█████████▉| 619/620 [03:36<00:00, 12.78it/s, est. speed input: 5515.97 toks/s, output: 4439.58 toks/s]
+100%|██████████| 1/1 [03:40<00:00, 220.66s/it]100%|██████████| 1/1 [03:40<00:00, 220.67s/it]
+[36m(VllmGenerationWorker pid=1673669)[0m Processed prompts: 100%|██████████| 620/620 [03:37<00:00,  2.85it/s, est. speed input: 5492.65 toks/s, output: 4424.75 toks/s]
