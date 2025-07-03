@@ -13,11 +13,11 @@ CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anys
 
 # SLURM configuration
 ACCOUNT="llmservice_modelalignment_ppo"
-PARTITION="batch"
-TIME_LIMIT="04:00:00"
+PARTITION="batch,batch_short,interactive"
+TIME_LIMIT="01:00:00"
 NODES=1
 CPUS_PER_TASK=8
-GPUS_PER_NODE=8
+GPUS_PER_NODE=1
 
 
 
@@ -122,17 +122,19 @@ for step_dir in "$CHECKPOINT_DIR"/step_*; do
             
             # Check if output already exists
             if [ -d "$hf_output_path" ]; then
-                echo "  ⚠️  Output directory already exists: $hf_output_path"
-                read -p "  Overwrite? (y/N): " -n 1 -r
-                echo
-                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                    echo "  ⏭️  Skipping step_$step_num"
-                    SKIPPED_STEPS+=("step_$step_num (already exists, user skipped)")
-                    continue
-                else
-                    echo "  ♻️  Removing existing output directory."
-                    rm -rf "$hf_output_path"
-                fi
+                echo "  ⚠️  Output directory already exists: $hf_output_path. Skipped."
+                continue
+                #echo "  ⚠️  Output directory already exists: $hf_output_path"
+                #read -p "  Overwrite? (y/N): " -n 1 -r
+                #echo
+                #if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                #    echo "  ⏭️  Skipping step_$step_num"
+                #    SKIPPED_STEPS+=("step_$step_num (already exists, user skipped)")
+                #    continue
+                #else
+                #    echo "  ♻️  Removing existing output directory."
+                #    rm -rf "$hf_output_path"
+                #fi
             fi
             
             # Submit conversion job

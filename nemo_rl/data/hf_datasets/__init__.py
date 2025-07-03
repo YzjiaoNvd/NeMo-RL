@@ -24,7 +24,7 @@ from nemo_rl.data.hf_datasets.squad import SquadDataset
 from nemo_rl.data.hf_datasets.reward_benchmarks import (
     JudgeBenchDataset,
     RMBenchDataset,
-    RewardBenchDataset,
+    RewardBench2Dataset,
 )
 
 __all__ = [
@@ -37,5 +37,6 @@ __all__ = [
     "COMMON_CHAT_TEMPLATES",
     "JudgeBenchDataset",
     "RMBenchDataset",
-    "RewardBenchDataset",
+    "RewardBench2Dataset",
+    "HelpSteer3LocalDataset"
 ]

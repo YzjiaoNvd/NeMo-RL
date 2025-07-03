@@ -11,6 +11,7 @@ import torch
 from omegaconf import OmegaConf
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizerBase
+import numpy as np
 
 from nemo_rl.algorithms.grpo import MasterConfig, grpo_train, setup
 from nemo_rl.algorithms.utils import get_tokenizer
@@ -49,7 +50,7 @@ def helpsteer3_genrm_data_processor(
     preference_ranking = args.get("preference_ranking", None)
     
     # Extract system prompt if present
-    system_prompt = datum_dict.get("system_prompt", "")
+    # system_prompt = datum_dict.get("system_prompt", "")
     
     # Create message log
     message_log = []
@@ -100,7 +101,7 @@ def helpsteer3_genrm_data_processor(
 class HelpSteer3LocalDataset(Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
     
-    def __init__(self, data_path: str, split: str = "train", shuffle: bool = False):
+    def __init__(self, data_path: str, split: str = "train", shuffle_seed: int = -1):
         self.data = []
         with open(data_path, 'r') as f:
             for line in f:
@@ -108,10 +109,10 @@ class HelpSteer3LocalDataset(Dataset):
 
         self.split = split
 
-        if shuffle:
-            random.seed(0)
-            random.shuffle(self.data)
-            print(f"Shuffled {split} dataset with {len(self.data)} samples using seed 0")
+        if shuffle_seed != -1:
+            rng = np.random.default_rng(shuffle_seed)
+            rng.shuffle(self.data)
+            print(f"Shuffled {split} dataset with {len(self.data)} samples using seed {shuffle_seed}")
     
     def __len__(self):
         return len(self.data)
@@ -152,7 +153,7 @@ def setup_data(
     # Load local datasets
     train_data_path = data_config.get("train_data_path")
     val_data_path = data_config.get("val_data_path")
-    train_dataset = HelpSteer3LocalDataset(train_data_path, split="train", shuffle=data_config.get("shuffle_train_data"))
+    train_dataset = HelpSteer3LocalDataset(train_data_path, split="train", shuffle_seed=data_config.get("shuffle_seed_for_training"))
     val_dataset = HelpSteer3LocalDataset(val_data_path, split="validation") if val_data_path else None
     
     # ISSUE 1 FIX: Use defaultdict to handle the task processor mapping correctly

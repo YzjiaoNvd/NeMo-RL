@@ -39,8 +39,7 @@ policy:
   precision: "float16"                  # bfloat16 → float16
   fsdp_offload_enabled: false
   activation_checkpointing_enabled: false
-  refit_buffer_size_gb: 2               # Reduced buffer size for lower memory
-
+  
   dtensor_cfg:
     enabled: true
     cpu_offload: false
@@ -101,7 +100,8 @@ data:
   prompt_file: null
   system_prompt_file: null
   dataset_name: "HelpSteer3-GenRM"
-  shuffle_train_data: True
+  shuffle_seed_for_training: 0  # -1 for not shuffling
+
 
 env:
   genrm:

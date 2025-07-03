@@ -2,10 +2,9 @@
 
 from typing import Any, Optional
 
-from datasets import load_dataset, concatenate_datasets
-
+from datasets import Dataset, load_dataset, concatenate_datasets
 from nemo_rl.data.interfaces import TaskDataSpec
-
+import json
 
 # GenRM prompt template
 GENRM_PROMPT_TEMPLATE = """You are a skilled little expert at scoring responses. You should evaluate given responses based on the given judging criteria.
@@ -101,62 +100,6 @@ def format_genrm_prompt(context: str, response1: str, response2: Optional[str] =
 
 
 
-
-
-def format_rmbench_example(data: dict[str, Any]) -> dict[str, Any]:
-    ################## TODO ##################
-    """Format RM-Bench data for GenRM evaluation."""
-    # Extract prompt and responses
-    prompt_text = data.get("prompt", "")
-    response1 = data.get("chosen", "")
-    response2 = data.get("rejected", "")
-    
-    # Format as conversation context
-    context = f"User: {prompt_text}"
-    
-    prompt = format_genrm_prompt(context, response1, response2)
-    
-    # RM-Bench typically has binary preference (chosen/rejected)
-    # Map to GenRM's 1-6 scale (2 = chosen is better, 5 = rejected is better)
-    label = data.get("label", 1)
-    preference = 2 if label == 1 else 5
-    
-    return {
-        "prompt": prompt,
-        "num_responses": 2,
-        "label_1": None,  # RM-Bench doesn't have individual scores
-        "label_2": None,
-        "preference": preference,
-        "ground_truth": label,
-    }
-
-
-def format_rewardbench_example(data: dict[str, Any]) -> dict[str, Any]:
-    ################## TODO ##################
-    """Format RewardBench data for GenRM evaluation."""
-    # RewardBench format varies by subset
-    prompt_text = data.get("prompt", "")
-    chosen = data.get("chosen", "")
-    rejected = data.get("rejected", "")
-    
-    # Format as conversation context
-    context = f"User: {prompt_text}"
-    
-    prompt = format_genrm_prompt(context, chosen, rejected)
-    
-    # RewardBench uses chosen/rejected format
-    # Map to GenRM's 1-6 scale (2 = chosen is better)
-    preference = 2  # Chosen (response 1) is better
-    
-    return {
-        "prompt": prompt,
-        "num_responses": 2,
-        "label_1": None,  # RewardBench doesn't have individual scores
-        "label_2": None,
-        "preference": preference,
-        "ground_truth": "chosen",
-    }
-
 def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
     """Format JudgeBench data for GenRM evaluation."""
     # Extract conversation context and responses based on actual JudgeBench format
@@ -186,6 +129,70 @@ def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def format_rmbench_example(data: dict[str, Any]) -> dict[str, Any]:
+    """Format RM-Bench data for GenRM evaluation."""
+    # Extract prompt and responses
+    prompt_text = data.get("prompt", "")
+    chosen_responses = data.get("chosen", [])
+    rejected_responses = data.get("rejected", [])
+
+    # Format as conversation context
+    context = f"User: {prompt_text}"
+    
+    # Create comparisons between each chosen and rejected response
+    examples = []
+    for chosen_resp, rejected_resp in zip(chosen_responses, rejected_responses):
+        # Create the GenRM prompt
+        prompt = format_genrm_prompt(context, chosen_resp, rejected_resp)    
+        # Create example with metadata
+        example = {
+            "prompt": prompt,
+            "num_responses": 2,
+            "label_1": None,  # RM-Bench doesn't have individual scores
+            "label_2": None,
+            "preference": 0,  # 0 = first response (chosen) is better
+            "ground_truth": None,
+        }
+        examples.append(example)
+
+    return examples
+    
+
+
+def format_rewardbench2_example(data: dict[str, Any]) -> dict[str, Any]:
+    """Format RM-Bench data for GenRM evaluation."""
+    # Extract prompt and responses
+    prompt_text = data.get("prompt", "")
+    chosen_responses = data.get("chosen", [])
+    rejected_responses = data.get("rejected", [])
+
+    assert len(chosen_responses) == 1
+    assert len(rejected_responses) == 3
+
+    # Format as conversation context
+    context = f"User: {prompt_text}"
+    
+    # Create comparisons between each chosen and rejected response
+    examples = []
+    for rejected_resp in rejected_responses:
+        # Create the GenRM prompt
+        prompt = format_genrm_prompt(context, chosen_responses[0], rejected_resp)    
+        # Create example with metadata
+        example = {
+            "prompt": prompt,
+            "num_responses": 2,
+            "label_1": None,  # RM-Bench doesn't have individual scores
+            "label_2": None,
+            "preference": 0,  # 0 = first response (chosen) is better
+            "ground_truth": None,
+        }
+        examples.append(example)
+
+    return examples
+
+
+
+
 class JudgeBenchDataset:
     """JudgeBench dataset for GenRM evaluation."""
     def __init__(self):
@@ -206,13 +213,65 @@ class RMBenchDataset:
     """RM-Bench dataset for GenRM evaluation."""
     
     def __init__(self):
-        ###################TODO ###################
-        pass
+        # Load both splits
+        ds = load_dataset("THU-KEG/RM-Bench", split="train")
+
+        # Manually expand the dataset by iterating through each example
+        all_formatted_examples = []
+        for example in ds:
+            # Get the three formatted examples for this sample
+            formatted_examples = format_rmbench_example(example)
+            all_formatted_examples.extend(formatted_examples)
+        
+        # Create a new dataset from the expanded examples
+        self.formatted_ds = Dataset.from_list(all_formatted_examples)
+        self.task_spec = TaskDataSpec(task_name="RMBench")
 
 
-class RewardBenchDataset:
+
+
+
+class RewardBench2Dataset:
     """RewardBench dataset for GenRM evaluation."""
     
     def __init__(self):
-        ###################TODO ###################
-        pass
+        # Load all splits except Ties
+        ds = load_dataset("allenai/reward-bench-2", split="test")
+        filter_ds = ds.filter(lambda ex: ex["subset"] != "Ties")
+
+        # Manually expand the dataset by iterating through each example
+        all_formatted_examples = []
+        for example in filter_ds:
+            # Get the three formatted examples for this sample
+            formatted_examples = format_rewardbench2_example(example)
+            all_formatted_examples.extend(formatted_examples)
+        
+        # Create a new dataset from the expanded examples
+        self.formatted_ds = Dataset.from_list(all_formatted_examples)
+        self.task_spec = TaskDataSpec(task_name="RewardBench2")
+
+
+
+class HelpSteer3LocalDataset(Dataset):
+    """Dataset for loading HelpSteer3 data from local JSONL files."""
+    def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data.jsonl"):
+        data = []
+        with open(data_path, 'r') as f:
+            for line in f:
+                one = json.loads(line)
+                if one["args"]["num_responses"] == 2:
+                    preference = 0 if one["args"]["preference_ranking"] <= 3 else 1
+                    example = {
+                        "prompt": one["prompt"],
+                        "num_responses": 2,
+                        "label_1": None,  
+                        "label_2": None,
+                        "preference": preference, 
+                        "ground_truth": None,
+                    }
+                    data.append(example)
+        
+        print("input dataset length:", len(data))
+        self.formatted_ds = Dataset.from_list(data)
+        self.task_spec = TaskDataSpec(task_name="HS3Local")
+

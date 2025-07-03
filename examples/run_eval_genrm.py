@@ -19,7 +19,8 @@ from nemo_rl.data.datasets import AllTaskProcessedDataset, eval_collate_fn
 from nemo_rl.data.hf_datasets.reward_benchmarks import (
     JudgeBenchDataset,
     RMBenchDataset,
-    RewardBenchDataset,
+    RewardBench2Dataset,
+    HelpSteer3LocalDataset,
 )
 from nemo_rl.data.interfaces import DatumSpec, TaskDataSpec
 from nemo_rl.distributed.batched_data_dict import BatchedDataDict
@@ -29,7 +30,7 @@ from nemo_rl.utils.config import load_config, parse_hydra_overrides
 from nemo_rl.models.generation import configure_generation_config
 
 class GenRMEvalConfig(TypedDict):
-    dataset_name: str  # "judgebench", "rmbench", or "rewardbench"
+    dataset_name: str  # "judgebench", "rmbench", or "rewardbench2"
     batch_size: int
     seed: int
     output_file: str
@@ -109,7 +110,7 @@ def parse_args():
     parser.add_argument(
         "--dataset", 
         type=str, 
-        choices=["judgebench", "rmbench", "rewardbench"],
+        choices=["judgebench", "rmbench", "rewardbench2", "hs3local"],
         default=None,
         help="Dataset to evaluate on (overrides config)"
     )
@@ -127,8 +128,10 @@ def setup_data(tokenizer, data_config, dataset_name):
         dataset_loader = JudgeBenchDataset()
     elif dataset_name == "rmbench":
         dataset_loader = RMBenchDataset()
-    elif dataset_name == "rewardbench":
-        dataset_loader = RewardBenchDataset()
+    elif dataset_name == "rewardbench2":
+        dataset_loader = RewardBench2Dataset()
+    elif dataset_name == "hs3local":
+        dataset_loader = HelpSteer3LocalDataset()
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
@@ -356,6 +359,7 @@ def main():
     
     # Initialize Ray
     init_ray()
+
     
     # Setup tokenizer
     tokenizer = get_tokenizer(config["tokenizer"])
