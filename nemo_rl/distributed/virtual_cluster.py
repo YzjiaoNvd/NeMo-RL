@@ -16,6 +16,8 @@ import os
 import sys
 import time
 from typing import Any, Optional, TypedDict
+import uuid
+
 
 import ray
 from ray.util.placement_group import (
@@ -153,6 +155,8 @@ def init_ray(log_dir: Optional[str] = None) -> None:
     logger.info(
         f"Started local cluster with tag '{cvd_tag}': {ray.cluster_resources()}"
     )
+
+
 
 
 class ResourceInsufficientError(Exception):

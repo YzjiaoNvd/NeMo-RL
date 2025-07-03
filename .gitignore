@@ -35,4 +35,5 @@ docker/*
 wandb/
 checkpoints/
 results/
+outputs/
 code_snapshots/

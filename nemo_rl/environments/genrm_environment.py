@@ -18,150 +18,65 @@ class GenRMEnvironmentMetadata(TypedDict):
     helpfulness_2: Optional[int]
     preference_ranking: Optional[int]
 
-
 @ray.remote
 class GenRMEnvironment(EnvironmentInterface):
     """Generative Reward Model environment for HelpSteer3 dataset."""
     
     def __init__(self, cfg: dict):
         self.cfg = cfg
-        self.format_penalty = cfg.get("format_penalty", -100)  # Large penalty for format violations
         logging.basicConfig(level=logging.INFO)
     
     def extract_answer(self, string: str) -> Optional[str]:
         """Extract Answer String from \\boxed expression."""
-        # Try to find the last occurrence of \boxed
         idx = string.rfind("\\boxed")
         if idx < 0:
-            # Try \fbox as alternative
             idx = string.rfind("\\fbox")
             if idx < 0:
                 return None
 
-        # Find the matching braces
-        i = idx + 6  # Skip past "\boxed"
-        if i >= len(string) or string[i] != '{':
-            return None
-            
-        # Count braces to find the matching closing brace
-        brace_count = 0
-        start_idx = i
+        i = idx
+        right_brace_idx = None
+        num_left_braces_open = 0
         while i < len(string):
-            if string[i] == '{':
-                brace_count += 1
-            elif string[i] == '}':
-                brace_count -= 1
-                if brace_count == 0:
-                    # Extract content between braces
-                    return string[start_idx + 1:i].strip()
+            if string[i] == "{":
+                num_left_braces_open += 1
+            if string[i] == "}":
+                num_left_braces_open -= 1
+                if num_left_braces_open == 0:
+                    right_brace_idx = i
+                    break
             i += 1
 
-        return None
-
-    def parse_score_value(self, score_str: str) -> Optional[int]:
-        """Parse a score value from a string, handling various formats."""
-        if not score_str:
+        if right_brace_idx is None:
             return None
-            
-        score_str = score_str.strip()
-        
-        # Try direct conversion first
-        try:
-            return int(score_str)
-        except ValueError:
-            pass
-        
-        # Try to extract the first number found
-        match = re.search(r'(\d+)', score_str)
-        if match:
+        else:
+            retval = string[idx : right_brace_idx + 1]
+
+        if retval:
+            left = "\\boxed{"
             try:
-                return int(match.group(1))
-            except ValueError:
-                pass
-                
+                assert retval[: len(left)] == left
+                assert retval[-1] == "}"
+                return retval[len(left) : -1]
+            except AssertionError:
+                return None
+
         return None
 
-    def distance_abs(self, predicted: Any, ground_truth: Any) -> int:
+    def distance_abs(self, a: str, b: int) -> int:
         """Calculate absolute distance between predicted and ground truth."""
         try:
-            # Handle None values
-            if predicted is None or ground_truth is None:
-                return 100
-            
-            # Convert to integers if they're strings
-            if isinstance(predicted, str):
-                predicted = self.parse_score_value(predicted)
-                if predicted is None:
-                    return 100
-                    
-            if isinstance(ground_truth, str):
-                ground_truth = self.parse_score_value(ground_truth)
-                if ground_truth is None:
-                    return 100
-            
-            # Calculate distance
-            return abs(int(predicted) - int(ground_truth))
+            d = abs(int(a) - int(b))
         except Exception as e:
-            logging.error(f"Error calculating distance: {e}, predicted: {predicted}, ground_truth: {ground_truth}")
-            return 100
-
-    def validate_format_and_extract(self, assistant_response: str, num_responses: int) -> tuple[bool, Optional[list], Optional[str], str]:
-        """
-        Validate the strict format and extract scores.
-        Returns: (is_valid_format, individual_scores, preference_ranking, error_message)
-        """
-        if num_responses == 1:
-            # Expected format: "[The Begin of Individual Scores]\n\\boxed{x} \n[The End of Individual Scores]\n"
-            pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
-            match = re.search(pattern, assistant_response, re.DOTALL)
-            
-            if not match:
-                return False, None, None, "Format violation: Expected '[The Begin of Individual Scores]\\n\\\\boxed{x} \\n[The End of Individual Scores]\\n' for single response"
-            
-            score_content = match.group(1).strip()
-            # For single response, should be just one score
-            if ',' in score_content:
-                return False, None, None, "Format violation: Single response should contain only one score, found comma"
-            
-            return True, [score_content], None, ""
-            
-        elif num_responses == 2:
-            # Expected format: "[The Begin of Individual Scores]\n\\boxed{x, y} \n[The End of Individual Scores]\n[The Begin of Ranking Score]\n\\boxed{z} \n[The End of Ranking Score]"
-            
-            # Check individual scores section
-            individual_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
-            individual_match = re.search(individual_pattern, assistant_response, re.DOTALL)
-            
-            if not individual_match:
-                return False, None, None, "Format violation: Missing or incorrect '[The Begin of Individual Scores]\\n\\\\boxed{x, y} \\n[The End of Individual Scores]' section"
-            
-            # Check ranking score section
-            ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
-            ranking_match = re.search(ranking_pattern, assistant_response, re.DOTALL)
-            
-            if not ranking_match:
-                return False, None, None, "Format violation: Missing or incorrect '[The Begin of Ranking Score]\\n\\\\boxed{z} \\n[The End of Ranking Score]' section"
-            
-            # Extract individual scores
-            scores_content = individual_match.group(1).strip()
-            individual_scores = [score.strip() for score in scores_content.split(',')]
-            
-            # For two responses, should have exactly two scores
-            if len(individual_scores) != 2:
-                return False, None, None, f"Format violation: Expected exactly 2 individual scores, found {len(individual_scores)}"
-            
-            # Extract preference ranking
-            preference_content = ranking_match.group(1).strip()
-            # Preference ranking should be a single value
-            if ',' in preference_content:
-                return False, None, None, "Format violation: Preference ranking should be a single value, found comma"
-            
-            return True, individual_scores, preference_content, ""
-        
-        else:
-            return False, None, None, f"Unsupported number of responses: {num_responses}"
+            logging.error(f"Error calculating distance: {e}, a: {a}, b: {b}")
+            d = 100
+        return d
     
-    def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[GenRMEnvironmentMetadata],) -> EnvironmentReturn:
+    def step(
+        self,
+        message_log_batch: list[list[dict[str, str]]],
+        metadata: list[GenRMEnvironmentMetadata],
+    ) -> EnvironmentReturn:
         """Evaluate GenRM predictions and return rewards."""
         
         rewards = []
@@ -175,50 +90,61 @@ class GenRMEnvironment(EnvironmentInterface):
                     assistant_response = msg["content"]
                     break
             
-            
-            
-            is_valid_format, individual_scores, preference_ranking, error_message = self.validate_format_and_extract(
-                assistant_response, meta["num_responses"]
-            )
-            # Validate format and extract scores
-            print("assistant_response: ", assistant_response)
-            print("extracted results: ")
-            if individual_scores is not None:
-                print(individual_scores)
-            if preference_ranking is not None:
-                print(preference_ranking)
-            print()
-            
-            
-            if not is_valid_format:
-                # Apply format penalty
-                reward = self.format_penalty
-                rewards.append(float(reward))
-                observations.append({
-                    "role": "environment",
-                    "content": f"Format violation penalty applied. Error: {error_message}. Reward: {reward}"
-                })
+            distance = 0
+            try:
+                # Extract individual helpfulness scores
+                individual_scores_match = re.search(
+                    r'\[The Begin of Individual Scores\](.*?)\[The End of Individual Scores\]',
+                    assistant_response,
+                    re.DOTALL
+                )
                 
-            else:
-                reward = self.format_penalty
-                try:
-                    if meta["num_responses"] == 1:
-                        if meta["helpfulness_1"] is not None and individual_scores:
-                            reward = -self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                if individual_scores_match:
+                    scores_text = individual_scores_match.group(1)
+                    extracted_scores = self.extract_answer(scores_text)
                     
-                    elif meta["num_responses"] == 2:
-                        # Calculate distance for both individual scores
-                        if meta["helpfulness_1"] is not None and individual_scores and len(individual_scores) == 2 and meta["preference_ranking"] is not None and preference_ranking:
-                            reward = - self.distance_abs(individual_scores[0], meta["helpfulness_1"])  - self.distance_abs(individual_scores[1], meta["helpfulness_2"]) - self.distance_abs(preference_ranking, meta["preference_ranking"])
+                    if extracted_scores:
+                        individual_scores = [s.strip() for s in extracted_scores.split(",")]
+                        
+                        if meta["num_responses"] == 1:
+                            if meta["helpfulness_1"] is not None:
+                                distance = self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                        
+                        elif meta["num_responses"] == 2:
+                            if meta["helpfulness_1"] is not None and len(individual_scores) > 0:
+                                distance += self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                            if meta["helpfulness_2"] is not None and len(individual_scores) > 1:
+                                distance += self.distance_abs(individual_scores[1], meta["helpfulness_2"])
+                            
+                            # Extract preference ranking
+                            preference_match = re.search(
+                                r'\[The Begin of Ranking Score\](.*?)\[The End of Ranking Score\]',
+                                assistant_response,
+                                re.DOTALL
+                            )
+                            
+                            if preference_match and meta["preference_ranking"] is not None:
+                                pref_text = preference_match.group(1)
+                                preference_ranking = self.extract_answer(pref_text)
+                                if preference_ranking:
+                                    distance += self.distance_abs(preference_ranking, meta["preference_ranking"])
                 
-                except Exception as e:
-                    logging.error(f"Error processing response: {e}")
-
-                rewards.append(float(reward))
-                observations.append({
-                    "role": "environment",
-                    "content": f"Format correct. GenRM evaluation complete. Reward: {reward}"
-                })
+                reward = -distance
+                
+                
+            except Exception as e:
+                logging.error(f"Error processing response: {e}")
+                reward = -100
+            
+            print("Metadata: ", meta)
+            print("Reward: ", reward)
+            print("assistant_response: ", assistant_response)
+            
+            rewards.append(float(reward))
+            observations.append({
+                "role": "environment",
+                "content": f"GenRM evaluation complete. Distance: {distance}, Reward: {reward}"
+            })
         
         rewards_tensor = torch.tensor(rewards, dtype=torch.float32)
         terminateds = torch.ones_like(rewards_tensor, dtype=torch.bool)
@@ -231,6 +157,9 @@ class GenRMEnvironment(EnvironmentInterface):
             terminateds=terminateds,
         )
     
+    
+
+        
     def global_post_process_and_metrics(self, batch: BatchedDataDict) -> tuple[BatchedDataDict, dict]:
         """Post processing and metrics calculation."""
         rewards = batch.get("rewards", torch.tensor([]))

@@ -1,21 +1,23 @@
 #!/bin/bash
-#SBATCH -N 1 --gpus-per-node=2 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name eval_genrm_custom -t 04:00:00 
+#SBATCH -N 1 --gpus-per-node=1 --ntasks-per-node 1 -A llmservice_modelalignment_ppo -p batch --job-name eval_genrm_custom -t 04:00:00 --dependency=singleton 
 
 export NCCL_ALGO=Tree
 set -x
+
+NAME="$1"
+
 
 # Configuration
 GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
 CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
-export HF_TOKEN="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"
-export WANDB_API_KEY="513faa0f50aaa6c8922ba4ffa34b9053a21c2954"
 
 
 # Base directory for your specific checkpoint structure
-BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128}"
+DATASET="rmbench"
+BASE_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}"
 HF_DIR="${BASE_DIR}/HF"  # Your checkpoints are under HF/step_X
-RESULTS_DIR="${2:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/grpo_hs3_16K_step240_clip_max_0.28_llama3.2_3B_lr_2e-6_temp_1_kl_0.001_grpo_bs_64_rollout_8_num_prompts_128}"
+RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/outputs/genrm_eval_results/${NAME}"
 
 # Create results directory
 mkdir -p $RESULTS_DIR
@@ -28,7 +30,7 @@ MOUNTS="--container-mounts=${GPFS}:${GPFS},/lustre:/lustre"
 
 # Create a summary file
 SUMMARY_FILE="${JOB_LOG_DIR}/evaluation_summary.txt"
-echo "GenRM Evaluation on JudgeBench Dataset" > $SUMMARY_FILE
+echo "GenRM Evaluation on ${DATASET} Dataset" > $SUMMARY_FILE
 echo "======================================" >> $SUMMARY_FILE
 echo "Base Directory: $BASE_DIR" >> $SUMMARY_FILE
 echo "HF Directory: $HF_DIR" >> $SUMMARY_FILE
@@ -65,7 +67,7 @@ for STEP_DIR in $STEP_DIRS; do
     MODEL_PATH="$STEP_DIR"
     
     # Define output file for this step
-    OUTPUT_FILE="${JOB_LOG_DIR}/${STEP_NAME}_judgebench_results.json"
+    OUTPUT_FILE="${JOB_LOG_DIR}/${STEP_NAME}_${DATASET}_results.json"
     LOG_FILE="${JOB_LOG_DIR}/${STEP_NAME}_eval.log"
     ERR_FILE="${JOB_LOG_DIR}/${STEP_NAME}_eval.err"
     
@@ -74,6 +76,15 @@ for STEP_DIR in $STEP_DIRS; do
 cd ${GPFS} \
 && ulimit -c 0 \
 && uv run python examples/run_eval_genrm.py \
+    --dataset rmbench \
+    ++generation.model_name=${MODEL_PATH} \
+    ++eval.output_file=${OUTPUT_FILE} \
+    ++eval.batch_size=1024 \
+    ++generation.vllm_cfg.tensor_parallel_size=1 \
+    ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
+    ++cluster.gpus_per_node=1 \
+    ++cluster.num_nodes=1 \
+&& uv run python examples/run_eval_genrm.py \
     --dataset judgebench \
     ++generation.model_name=${MODEL_PATH} \
     ++eval.output_file=${OUTPUT_FILE} \
@@ -81,7 +92,17 @@ cd ${GPFS} \
     ++generation.vllm_cfg.tensor_parallel_size=1 \
     ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
     ++cluster.gpus_per_node=1 \
+    ++cluster.num_nodes=1 \
+&& uv run python examples/run_eval_genrm.py \
+    --dataset hs3local \
+    ++generation.model_name=${MODEL_PATH} \
+    ++eval.output_file=${OUTPUT_FILE} \
+    ++eval.batch_size=1024 \
+    ++generation.vllm_cfg.tensor_parallel_size=1 \
+    ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
+    ++cluster.gpus_per_node=1 \
     ++cluster.num_nodes=1
+
 EOF
 
     echo "Running evaluation for $STEP_NAME..." | tee -a $SUMMARY_FILE
@@ -90,31 +111,4 @@ EOF
     # Execute the evaluation
     srun -o $LOG_FILE -e $ERR_FILE --container-image=${CONTAINER}  -A llmservice_modelalignment_ppo -p batch --job-name eval_genrm_custom  -N 1 --gpus-per-node=1 --ntasks-per-node 1  $MOUNTS bash -c "${cmd_eval}"
     
-    # Check if evaluation was successful
-    if [ $? -eq 0 ]; then
-        echo "✓ Evaluation completed successfully" | tee -a $SUMMARY_FILE
-    else
-        echo "✗ Evaluation failed for $STEP_NAME" | tee -a $SUMMARY_FILE
-        echo "Check error log: $ERR_FILE" | tee -a $SUMMARY_FILE
-    fi
 done
-
-echo "======================================" | tee -a $SUMMARY_FILE
-echo "Evaluation Complete!" | tee -a $SUMMARY_FILE
-echo "End Time: $(date)" | tee -a $SUMMARY_FILE
-echo "" | tee -a $SUMMARY_FILE
-echo "Results saved in: $JOB_LOG_DIR" | tee -a $SUMMARY_FILE
-
-# Display final accuracy summary
-if [ -f "${JOB_LOG_DIR}/accuracy_summary.txt" ]; then
-    echo "" | tee -a $SUMMARY_FILE
-    echo "Accuracy Summary:" | tee -a $SUMMARY_FILE
-    echo "----------------" | tee -a $SUMMARY_FILE
-    cat "${JOB_LOG_DIR}/accuracy_summary.txt" | tee -a $SUMMARY_FILE
-    
-    # Create a sorted version by accuracy
-    echo "" | tee -a $SUMMARY_FILE
-    echo "Sorted by Accuracy (Best to Worst):" | tee -a $SUMMARY_FILE
-    echo "-----------------------------------" | tee -a $SUMMARY_FILE
-    sort -t'=' -k2 -rn "${JOB_LOG_DIR}/accuracy_summary.txt" | tee -a $SUMMARY_FILE
-fibatch
