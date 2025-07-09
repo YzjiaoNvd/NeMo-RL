@@ -2,7 +2,7 @@
 set -e
 
 # Base directory (from argument or default)
-BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/2grpo_hs3_16K_step240_clip_max_0.28_qwen25_3b_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_16_num_prompts_128}"
+BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/2grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_16_num_prompts_128}"
 HF_DIR="${BASE_DIR}/HF"
 RESULTS_DIR="${BASE_DIR}/outputs"
 DATASET="rmbench"
@@ -28,18 +28,15 @@ if [ -z "$STEP_DIRS" ]; then
 fi
 
 # Process each step
-SUBMITTED=0
-SKIPPED=0
-
 for step_dir in $(echo "$STEP_DIRS" | sort -V); do
     step_num=$(basename "$step_dir" | grep -Eo '[0-9]+$')
     
     if [ -z "$step_num" ]; then
         echo "⚠️  Invalid: $(basename "$step_dir")"
-        ((SKIPPED++))
         continue
     fi
     
     echo "Processing step_$step_num..."
     bash "$EVAL_SCRIPT" "$step_dir" "$step_num" "$RESULTS_DIR" ""$DATASET""
+
 done

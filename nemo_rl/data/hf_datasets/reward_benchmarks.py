@@ -100,13 +100,12 @@ def format_genrm_prompt(context: str, response1: str, response2: Optional[str] =
 
 
 
-def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
+def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Format JudgeBench data for GenRM evaluation."""
     # Extract conversation context and responses based on actual JudgeBench format
     context = data.get("question", "")
     response1 = data.get("response_A", "")
     response2 = data.get("response_B", "")
-    prompt = format_genrm_prompt(context, response1, response2)
     
     # Parse the label field (e.g., "B>A" means B is better than A)
     label = data.get("label", "")
@@ -117,19 +116,26 @@ def format_judgebench_example(data: dict[str, Any]) -> dict[str, Any]:
         preference = 1  # Response 2 (B) is better
     
     # JudgeBench doesn't have individual scores, just preference labels
-    result = {
-        "prompt": prompt,
+    result1 = {
+        "prompt": format_genrm_prompt(context, response1, response2),
         "num_responses": 2,
         "label_1": None,  # JudgeBench doesn't provide individual scores
         "label_2": None,
         "preference": preference,
-        "ground_truth": label,  # Store original label as ground truth
     }
     
-    return result
+    result2 = {
+        "prompt": format_genrm_prompt(context, response2, response1),
+        "num_responses": 2,
+        "label_1": None,  # JudgeBench doesn't provide individual scores
+        "label_2": None,
+        "preference": 1-preference,
+    }
+    
+    return [result1, result2]
 
 
-def format_rmbench_example(data: dict[str, Any]) -> dict[str, Any]:
+def format_rmbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Format RM-Bench data for GenRM evaluation."""
     # Extract prompt and responses
     prompt_text = data.get("prompt", "")
@@ -142,24 +148,29 @@ def format_rmbench_example(data: dict[str, Any]) -> dict[str, Any]:
     # Create comparisons between each chosen and rejected response
     examples = []
     for chosen_resp, rejected_resp in zip(chosen_responses, rejected_responses):
-        # Create the GenRM prompt
-        prompt = format_genrm_prompt(context, chosen_resp, rejected_resp)    
-        # Create example with metadata
-        example = {
-            "prompt": prompt,
+        example1 = {
+            "prompt": format_genrm_prompt(context, chosen_resp, rejected_resp),
             "num_responses": 2,
             "label_1": None,  # RM-Bench doesn't have individual scores
             "label_2": None,
             "preference": 0,  # 0 = first response (chosen) is better
-            "ground_truth": None,
         }
-        examples.append(example)
+        examples.append(example1)
+
+        example2 = {
+            "prompt": format_genrm_prompt(context, rejected_resp, chosen_resp),
+            "num_responses": 2,
+            "label_1": None,  # RM-Bench doesn't have individual scores
+            "label_2": None,
+            "preference": 1,  # 1 = second response (chosen) is better
+        }
+        examples.append(example2)
 
     return examples
     
 
 
-def format_rewardbench2_example(data: dict[str, Any]) -> dict[str, Any]:
+def format_rewardbench2_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Format RM-Bench data for GenRM evaluation."""
     # Extract prompt and responses
     prompt_text = data.get("prompt", "")
@@ -203,8 +214,15 @@ class JudgeBenchDataset:
         # Merge the datasets
         merged_ds = concatenate_datasets([gpt_ds, claude_ds])
         
-        # Format the merged dataset
-        self.formatted_ds = merged_ds.map(format_judgebench_example, load_from_cache_file=False)
+        # Manually expand the dataset by iterating through each example
+        all_formatted_examples = []
+        for example in merged_ds:
+            # Get the three formatted examples for this sample
+            formatted_examples = format_judgebench_example(example)
+            all_formatted_examples.extend(formatted_examples)
+        
+        # Create a new dataset from the expanded examples
+        self.formatted_ds = Dataset.from_list(all_formatted_examples)
         self.task_spec = TaskDataSpec(task_name="JudgeBench")
 
 
@@ -251,7 +269,7 @@ class RewardBench2Dataset:
         self.task_spec = TaskDataSpec(task_name="RewardBench2")
 
 
-
+######issue to be fixed: change the input file 
 class HelpSteer3LocalDataset(Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
     def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data.jsonl"):
@@ -267,7 +285,6 @@ class HelpSteer3LocalDataset(Dataset):
                         "label_1": None,  
                         "label_2": None,
                         "preference": preference, 
-                        "ground_truth": None,
                     }
                     data.append(example)
         

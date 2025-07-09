@@ -76,15 +76,6 @@ for STEP_DIR in $STEP_DIRS; do
 cd ${GPFS} \
 && ulimit -c 0 \
 && uv run python examples/run_eval_genrm.py \
-    --dataset rmbench \
-    ++generation.model_name=${MODEL_PATH} \
-    ++eval.output_file=${OUTPUT_FILE} \
-    ++eval.batch_size=1024 \
-    ++generation.vllm_cfg.tensor_parallel_size=1 \
-    ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
-    ++cluster.gpus_per_node=1 \
-    ++cluster.num_nodes=1 \
-&& uv run python examples/run_eval_genrm.py \
     --dataset judgebench \
     ++generation.model_name=${MODEL_PATH} \
     ++eval.output_file=${OUTPUT_FILE} \
@@ -93,15 +84,6 @@ cd ${GPFS} \
     ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
     ++cluster.gpus_per_node=1 \
     ++cluster.num_nodes=1 \
-&& uv run python examples/run_eval_genrm.py \
-    --dataset hs3local \
-    ++generation.model_name=${MODEL_PATH} \
-    ++eval.output_file=${OUTPUT_FILE} \
-    ++eval.batch_size=1024 \
-    ++generation.vllm_cfg.tensor_parallel_size=1 \
-    ++generation.vllm_cfg.gpu_memory_utilization=0.7 \
-    ++cluster.gpus_per_node=1 \
-    ++cluster.num_nodes=1
 
 EOF
 

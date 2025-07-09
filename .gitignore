@@ -24,6 +24,7 @@ coverage.json
 test_assets/
 
 # Cache
+container/
 uv_cache/
 hf_home/
 hf_datasets_cache/

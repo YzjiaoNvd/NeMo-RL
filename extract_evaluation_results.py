@@ -2,6 +2,8 @@ import os
 import json
 import re
 from collections import defaultdict
+import argparse
+
 
 def calculate_accuracy(data: list[dict]):
     correct_predictions = 0
@@ -81,24 +83,27 @@ def calculate_step_accuracies(directory_path: str, dataset: str) -> dict:
                     
                     accuracy = 0.0
                     if dataset == "rewardbench2":
-                        chunk_outcomes = []
-                        if data:
-                            length = len(data)
-                            assert length % 3 == 0
-                            for i in range(0, length, 3):
-                                chunk = data[i: i+3]
-                                if chunk:
-                                    chunk_accuracy = calculate_accuracy(chunk)
-                                    chunk_outcomes.append(1 if chunk_accuracy == 1.0 else 0)
-                        
-                        # The final accuracy is the average of the outcomes of all chunks
-                        if chunk_outcomes:
-                            accuracy = sum(chunk_outcomes) / len(chunk_outcomes)
-                        else:
-                            accuracy = 0.0 # No chunks to process
+                        chunk_size = 3
+                    elif dataset == "rmbench" or dataset == "judgebench":
+                        chunk_size = 2
                     else:
-                        # Use the standard accuracy calculation for all other datasets
-                        accuracy = calculate_accuracy(data)
+                        chunk_size = 1
+
+                    chunk_outcomes = []
+                    if data:
+                        length = len(data)
+                        assert length % chunk_size == 0
+                        for i in range(0, length, chunk_size):
+                            chunk = data[i: i+chunk_size]
+                            if chunk:
+                                chunk_accuracy = calculate_accuracy(chunk)
+                                chunk_outcomes.append(1 if chunk_accuracy == 1.0 else 0)
+                        
+                    # The final accuracy is the average of the outcomes of all chunks
+                    if chunk_outcomes:
+                        accuracy = sum(chunk_outcomes) / len(chunk_outcomes)
+                    else:
+                        accuracy = 0.0 # No chunks to process
 
                     step_accuracies[step_number] = accuracy
                     
@@ -117,15 +122,20 @@ def calculate_step_accuracies(directory_path: str, dataset: str) -> dict:
     return sorted_accuracies
 
 
+parser = argparse.ArgumentParser(description="Compute per-step accuracies from evaluation JSON files.")
+parser.add_argument(
+    "path",
+    help="Path to the directory that contains the evaluation output files."
+)
+parser.add_argument("--dataset", default="judgebench", help="Dataset name (default: %(default)s).")
 
-dataset = "rmbench"
-data_directory = '/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_qwen25_3b_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_16_num_prompts_128/outputs'
-final_accuracies = calculate_step_accuracies(data_directory, dataset)
+args = parser.parse_args()
+
+final_accuracies = calculate_step_accuracies(args.path, args.dataset)
 
 if final_accuracies:
     print("Accuracy for each step:")
     for step, acc in final_accuracies.items():
-        # Use :.2% to format as a percentage
         print(f"  Step {step}: {acc:.2%}")
 else:
     print("No matching files or data were found in the specified directory.")

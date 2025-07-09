@@ -3,10 +3,8 @@
 set -x
 
 GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
-CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
+CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
-export WANDB_API_KEY="513faa0f50aaa6c8922ba4ffa34b9053a21c2954"
-export HF_TOKEN="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"
 
 
 # Number of nodes for the job
@@ -16,6 +14,7 @@ NUM_ACTOR_NODES=8
 FSDP2=True
 MODEL="Qwen/Qwen3-14B"
 MODEL_NAME="qwen3_14b"
+reward="r0"
 ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
@@ -27,7 +26,8 @@ prompts_per_step=128
 rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
 kl=0.001
 
-NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}"
+
+NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}"
 
 RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}"
 mkdir -p $RESULTS_DIR
@@ -50,6 +50,7 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm.py \
     policy.dtensor_cfg.tensor_parallel_size=1 \
     policy.dtensor_cfg.activation_checkpointing=${ACT_CKPT} \
     policy.dtensor_cfg.cpu_offload=${CPU_OFFLOAD} \
+    ++policy.dtensor_cfg.context_parallel_size=1 \
     ++cluster.gpus_per_node=8 \
     grpo.num_prompts_per_step=${prompts_per_step} \
     grpo.num_generations_per_prompt=${rollouts_per_prompt} \
@@ -78,7 +79,7 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm.py \
     policy.generation.temperature=${temp} \
     policy.generation.vllm_cfg.gpu_memory_utilization=0.8 \
     data.dataset_name="hs3" \
-    env.genrm.num_workers=1 "
+    ++env.genrm.reward_design=${reward} "
 
 # Set up mounts
 MOUNTS="${GPFS}:${GPFS},/lustre:/lustre"
@@ -90,7 +91,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_ppo \
-    --job-name=grpo_genrm_hs3_14b_1 \
+    --job-name=grpo_genrm_hs3_14b_${reward} \
     --partition=batch \
     --time=4:00:00 \
     --gres=gpu:8 \

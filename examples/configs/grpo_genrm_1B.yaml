@@ -93,6 +93,16 @@ policy:
       gpu_memory_utilization: 0.6
       max_model_len: ${policy.max_total_sequence_length}
       load_format: dummy
+    colocated:
+      # true: generation shares training GPUs
+      # false: uses dedicated generation resources
+      enabled: true
+      # only relevant when enabled is false
+      resources:
+        gpus_per_node: null # Decides num gpus to be dedicated to generation when there is one node in the cluster i.e cluster.num_nodes == 1
+        num_nodes: null # Decides number of nodes to be dedicated to generation
+
+
 
 data:
   train_data_path: "/home/yizhujiao/datasets/hs3_genrm/train_data.jsonl"
@@ -105,8 +115,8 @@ data:
 
 env:
   genrm:
-    # GenRM environment configuration
     num_workers: 1
+    reward_design: "r0"
 
 logger:
   log_dir: "logs/grpo_genrm"

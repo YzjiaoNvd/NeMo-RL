@@ -79,7 +79,7 @@ srun --container-image="$CONTAINER" $mounts bash -c '
     # Change to the NeMo-RL directory (this is crucial!)
     cd "'"$GPFS"'" \
     && ulimit -c 0 \
-    && uv run python examples/convert_dcp_to_hf.py --config='"$container_config_path"' --dcp-ckpt-path='"$container_dcp_path"' --hf-ckpt-path='"$container_hf_path"' 
+    && uv run python examples/converters/convert_dcp_to_hf.py --config='"$container_config_path"' --dcp-ckpt-path='"$container_dcp_path"' --hf-ckpt-path='"$container_hf_path"' 
 
     echo "Conversion successful for step_'"$step_num"'."
 '
