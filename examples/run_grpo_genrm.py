@@ -26,7 +26,7 @@ from nemo_rl.environments.genrm_environment import GenRMEnvironment
 from nemo_rl.models.generation import configure_generation_config
 from nemo_rl.utils.config import load_config, parse_hydra_overrides
 from nemo_rl.utils.logger import get_next_experiment_dir
-
+from nemo_rl.data.hf_datasets.reward_benchmarks import HelpSteer3LocalDataset
 OmegaConf.register_new_resolver("mul", lambda a, b: a * b)
 
 
@@ -41,14 +41,15 @@ def helpsteer3_genrm_data_processor(
     
     # Extract the prompt (which contains the full formatted prompt with responses)
     prompt = datum_dict.get("prompt", "")
-    
-    # Extract metadata from the args field
-    args = datum_dict.get("args", {})
-    num_responses = args.get("num_responses", 1)
-    helpfulness_1 = args.get("helpfulness_1", None)
-    helpfulness_2 = args.get("helpfulness_2", None)
-    preference_ranking = args.get("preference_ranking", None)
-    
+
+    # Prepare metadata for environment
+    metadata = {
+        "num_responses": datum_dict.get("num_responses", 2),
+        "helpfulness_1": datum_dict.get("label_1", None),
+        "helpfulness_2": datum_dict.get("label_2", None),
+        "preference_ranking": datum_dict.get("preference_ranking", None),
+    }
+
     # Extract system prompt if present
     # system_prompt = datum_dict.get("system_prompt", "")
     
@@ -68,7 +69,6 @@ def helpsteer3_genrm_data_processor(
     user_message["content"] = message[0]
     message_log.append(user_message)
     
-
     # Calculate total length
     total_length = sum(len(msg["token_ids"]) for msg in message_log)
     
@@ -79,14 +79,7 @@ def helpsteer3_genrm_data_processor(
         for msg in message_log:
             msg["token_ids"] = msg["token_ids"][: min(4, max_seq_length // len(message_log)) ]
         loss_multiplier = 0.0
-    
-    # Prepare metadata for environment
-    metadata = {
-        "num_responses": num_responses,
-        "helpfulness_1": helpfulness_1,
-        "helpfulness_2": helpfulness_2,
-        "preference_ranking": preference_ranking,
-    }
+
 
     return DatumSpec(
         message_log=message_log,
@@ -97,7 +90,7 @@ def helpsteer3_genrm_data_processor(
         task_name="genrm",
     )
 
-
+'''
 class HelpSteer3LocalDataset(Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
     
@@ -122,7 +115,7 @@ class HelpSteer3LocalDataset(Dataset):
         item = self.data[idx].copy()
         item["task_name"] = "genrm"
         return item
-
+'''
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
     """Parse command line arguments."""
@@ -153,8 +146,8 @@ def setup_data(
     # Load local datasets
     train_data_path = data_config.get("train_data_path")
     val_data_path = data_config.get("val_data_path")
-    train_dataset = HelpSteer3LocalDataset(train_data_path, split="train", shuffle_seed=data_config.get("shuffle_seed_for_training"))
-    val_dataset = HelpSteer3LocalDataset(val_data_path, split="validation") if val_data_path else None
+    train_dataset = HelpSteer3LocalDataset(train_data_path, shuffle_seed=data_config.get("shuffle_seed_for_training"))
+    val_dataset = HelpSteer3LocalDataset(val_data_path) if val_data_path else None
     
     # ISSUE 1 FIX: Use defaultdict to handle the task processor mapping correctly
     # This ensures that any task_name gets mapped to the genrm processor

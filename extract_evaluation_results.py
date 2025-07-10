@@ -127,7 +127,7 @@ parser.add_argument(
     "path",
     help="Path to the directory that contains the evaluation output files."
 )
-parser.add_argument("--dataset", default="judgebench", help="Dataset name (default: %(default)s).")
+parser.add_argument("--dataset", default="rmbench", help="Dataset name (default: %(default)s).")
 
 args = parser.parse_args()
 

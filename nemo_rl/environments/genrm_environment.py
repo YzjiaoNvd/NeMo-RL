@@ -39,6 +39,7 @@ class GenRMEnvironment(EnvironmentInterface):
             "r1": self._calculate_strict_format_reward,
             "r2": self._calculate_squared_error_reward,
             "r3": self._calculate_decomposed_reward,
+            "r4": self._calculate_nonoverlapped_reward
         }
         
         logging.basicConfig(level=logging.INFO)
@@ -225,6 +226,20 @@ class GenRMEnvironment(EnvironmentInterface):
         """Calculate reward using strict format design (same as current but with strict validation)."""
         # Same calculation as current reward
         return self._calculate_current_reward(individual_scores, preference_ranking, meta)
+
+    def _calculate_nonoverlapped_reward(self, individual_scores: list, preference_ranking: Optional[str], 
+                                       meta: GenRMEnvironmentMetadata) -> float:
+        """Calculate reward using squared error design."""
+        distance = 0
+        
+        if meta["num_responses"] == 1:
+            if meta["helpfulness_1"] is not None and individual_scores:
+                distance = self.distance_squared(individual_scores[0], meta["helpfulness_1"])
+        elif meta["num_responses"] == 2:
+            if meta["preference_ranking"] is not None and preference_ranking:
+                distance += self.distance_squared(preference_ranking, meta["preference_ranking"])
+        
+        return -distance
 
     def _calculate_squared_error_reward(self, individual_scores: list, preference_ranking: Optional[str], 
                                        meta: GenRMEnvironmentMetadata) -> float:

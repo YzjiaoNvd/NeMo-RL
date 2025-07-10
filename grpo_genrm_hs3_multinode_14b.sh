@@ -5,6 +5,8 @@ set -x
 GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
 CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
+export HF_TOKEN="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"
+export WANDB_API_KEY="513faa0f50aaa6c8922ba4ffa34b9053a21c2954"
 
 
 # Number of nodes for the job
@@ -14,7 +16,6 @@ NUM_ACTOR_NODES=8
 FSDP2=True
 MODEL="Qwen/Qwen3-14B"
 MODEL_NAME="qwen3_14b"
-reward="r0"
 ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
@@ -25,11 +26,12 @@ grpo_bs=256
 prompts_per_step=128
 rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
 kl=0.001
-
+reward="r0"
+data_version="_base"
 
 NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}"
 
-RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}"
+RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
 mkdir -p $RESULTS_DIR
 
 ACTOR_LOG_DIR="${RESULTS_DIR}/logs"

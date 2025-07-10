@@ -5,6 +5,8 @@ from typing import Any, Optional
 from datasets import Dataset, load_dataset, concatenate_datasets
 from nemo_rl.data.interfaces import TaskDataSpec
 import json
+import numpy as np
+import torch
 
 # GenRM prompt template
 GENRM_PROMPT_TEMPLATE = """You are a skilled little expert at scoring responses. You should evaluate given responses based on the given judging criteria.
@@ -223,7 +225,6 @@ class JudgeBenchDataset:
         
         # Create a new dataset from the expanded examples
         self.formatted_ds = Dataset.from_list(all_formatted_examples)
-        self.task_spec = TaskDataSpec(task_name="JudgeBench")
 
 
 
@@ -243,7 +244,6 @@ class RMBenchDataset:
         
         # Create a new dataset from the expanded examples
         self.formatted_ds = Dataset.from_list(all_formatted_examples)
-        self.task_spec = TaskDataSpec(task_name="RMBench")
 
 
 
@@ -266,13 +266,12 @@ class RewardBench2Dataset:
         
         # Create a new dataset from the expanded examples
         self.formatted_ds = Dataset.from_list(all_formatted_examples)
-        self.task_spec = TaskDataSpec(task_name="RewardBench2")
 
 
 ######issue to be fixed: change the input file 
-class HelpSteer3LocalDataset(Dataset):
+class HelpSteer3LocalDataset(torch.utils.data.Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
-    def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data.jsonl"):
+    def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data.jsonl", shuffle_seed: int = -1):
         data = []
         with open(data_path, 'r') as f:
             for line in f:
@@ -280,15 +279,40 @@ class HelpSteer3LocalDataset(Dataset):
                 if one["args"]["num_responses"] == 2:
                     preference = 0 if one["args"]["preference_ranking"] <= 3 else 1
                     example = {
-                        "prompt": one["prompt"],
+                        "prompt": format_genrm_prompt(one["args"]["context"], one["args"]["response1"], one["args"]["response2"]),
                         "num_responses": 2,
-                        "label_1": None,  
-                        "label_2": None,
+                        "label_1": one["args"]["helpfulness_1"],  
+                        "label_2": one["args"]["helpfulness_2"],
                         "preference": preference, 
+                        "preference_ranking": one["args"]["preference_ranking"]
+                    }
+                    data.append(example)
+
+                    example = {
+                        "prompt": format_genrm_prompt(one["args"]["context"], one["args"]["response2"], one["args"]["response1"]),
+                        "num_responses": 2,
+                        "label_1": one["args"]["helpfulness_2"],  
+                        "label_2": one["args"]["helpfulness_1"],
+                        "preference": 1 - preference, 
+                        "preference_ranking": 7 - one["args"]["preference_ranking"],
+                        "context": one["args"]["context"]
                     }
                     data.append(example)
         
-        print("input dataset length:", len(data))
-        self.formatted_ds = Dataset.from_list(data)
-        self.task_spec = TaskDataSpec(task_name="HS3Local")
+        if shuffle_seed != -1:
+            rng = np.random.default_rng(shuffle_seed)
+            rng.shuffle(data)
+            print(f"Shuffled the dataset with {len(data)} samples using seed {shuffle_seed}")
+
+        self.data = Dataset.from_list(data)
+        self.formatted_ds = self.data
+
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        # Add task_name for compatibility with AllTaskProcessedDataset
+        item = self.data[idx].copy()
+        item["task_name"] = "genrm"
+        return item
 
