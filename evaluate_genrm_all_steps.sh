@@ -5,7 +5,7 @@ set -e
 BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/2grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_16_num_prompts_128}"
 HF_DIR="${BASE_DIR}/HF"
 RESULTS_DIR="${BASE_DIR}/outputs"
-DATASET="rmbench"
+DATASET="judgebench"
 
 
 # Find evaluation script
