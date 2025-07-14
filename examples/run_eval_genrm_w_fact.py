@@ -36,7 +36,8 @@ from nemo_rl.environments.genrm_environment_w_fact import (
     TwoStageFactCheckEnvironment,
     format_factcheck_stage_prompt,
     format_scoring_stage_prompt, 
-    parse_scoring_response
+    parse_scoring_response,
+    parse_fact_checking_response,
 )
 
 
@@ -64,15 +65,15 @@ def genrm_eval_data_processor(
     max_seq_length: int,
     idx: int,
 ) -> DatumSpec:
-    """Process evaluation data for GenRM format. (UNCHANGED from original)"""
+    """Process evaluation data for GenRM format."""
     # Debug: Print the datum_dict to see what fields are available
     if idx < 3:  # Only print first few examples
         print(f"\n[DEBUG] Example {idx} datum_dict keys: {list(datum_dict.keys())}")
-        for key in ["prompt", "num_responses", "label_1", "label_2", "preference", "ground_truth"]:
+        for key in ["prompt", "num_responses", "label_1", "label_2", "preference", "ground_truth", "context", "response1", "response2"]:
             if key in datum_dict:
                 value = datum_dict[key]
-                if isinstance(value, str):
-                    print(f"  {key}: {value}...")
+                if isinstance(value, str) and len(value) > 100:
+                    print(f"  {key}: {value[:100]}...")
                 else:
                     print(f"  {key}: {value}")
     
@@ -92,13 +93,17 @@ def genrm_eval_data_processor(
         }
     ]
     
-    # Extract metadata - make sure we're getting the actual values
+    # Extract metadata - include context and responses for two-stage evaluation
     metadata = {
         "num_responses": datum_dict.get("num_responses", 2),
         "helpfulness_1": datum_dict.get("label_1"),
         "helpfulness_2": datum_dict.get("label_2"),
         "preference_ranking": datum_dict.get("preference"),
         "ground_truth": datum_dict.get("ground_truth"),
+        # Add context and responses for two-stage evaluation
+        "context": datum_dict.get("context", ""),
+        "response1": datum_dict.get("response1", ""),
+        "response2": datum_dict.get("response2", ""),
     }
     
     # Debug: Print extracted metadata
@@ -139,7 +144,7 @@ def parse_args():
 
 
 def setup_data(tokenizer, data_config, dataset_name):
-    """Set up evaluation dataset. (UNCHANGED from original)"""
+    """Set up evaluation dataset."""
     print(f"\n▶ Setting up {dataset_name} dataset...")
     
     # Load dataset
@@ -167,8 +172,8 @@ def setup_data(tokenizer, data_config, dataset_name):
         first_example = test_dataset[0]
         print(f"  Keys: {list(first_example.keys())}")
         for key, value in first_example.items():
-            if isinstance(value, str):
-                print(f"  {key}: {value}...")
+            if isinstance(value, str) and len(value) > 200:
+                print(f"  {key}: {value[:200]}...")
             else:
                 print(f"  {key}: {value}")
     
@@ -190,7 +195,7 @@ def setup_data(tokenizer, data_config, dataset_name):
 
 
 def extract_boxed_content(text: str) -> Optional[str]:
-    """Extract content from \\boxed{} format. (UNCHANGED from original)"""
+    """Extract content from \\boxed{} format."""
     import re
     
     # Try to find \boxed{...} pattern
@@ -218,7 +223,7 @@ def extract_boxed_content(text: str) -> Optional[str]:
 
 
 def evaluate_genrm(vllm_generation, dataloader, output_file):
-    """Run evaluation and save results. (UNCHANGED from original)"""
+    """Run evaluation and save results."""
     results = []
     
     print("\n▶ Running evaluation...")
@@ -350,14 +355,25 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
             # Create fact-checking prompts from metadata (not from message logs which contain GenRM prompts)
             factcheck_prompts = []
             for metadata in batch["extra_env_info"]:
-                # Extract context and responses from metadata to create fact-checking prompt
+                # Extract context and responses from metadata
                 context = metadata.get("context", "")
                 response1 = metadata.get("response1", "")
                 response2 = metadata.get("response2", "")
                 
+                # Debug metadata content
+                if batch_idx == 0 and len(factcheck_prompts) == 0:
+                    print(f"\n[DEBUG] First sample metadata:")
+                    print(f"  context: {context[:200] if context else 'EMPTY'}...")
+                    print(f"  response1: {response1[:200] if response1 else 'EMPTY'}...")
+                    print(f"  response2: {response2[:200] if response2 else 'EMPTY'}...")
+                
                 # Create proper fact-checking prompt
                 factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
                 factcheck_prompts.append(factcheck_prompt)
+            
+            # Debug first factcheck prompt
+            if batch_idx == 0 and factcheck_prompts:
+                print(f"\n[DEBUG] First factcheck prompt (truncated): {factcheck_prompts[0][:500]}...")
             
             # Generate fact-checking responses
             stage1_inputs = BatchedDataDict({"prompts": factcheck_prompts})
@@ -366,7 +382,9 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
             
             # Debug first fact-check response
             if batch_idx == 0 and len(factcheck_responses) > 0:
-                print(f"\n[DEBUG] First fact-check response: {factcheck_responses[0]}...")
+                print(f"\n[DEBUG] First fact-check response: {factcheck_responses[0][:500]}...")
+            
+            parsed_factcheck_responses = [parse_fact_checking_response(rep) for rep in factcheck_responses]
             
             # STAGE 2: Create scoring prompts with raw fact-check results (no parsing)
             print(f"[DEBUG] Starting Stage 2 (scoring) for batch {batch_idx}")
@@ -375,7 +393,7 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
             
             for i, (metadata, factcheck_response) in enumerate(zip(
                 batch["extra_env_info"], 
-                factcheck_responses
+                parsed_factcheck_responses
             )):
                 # Truncate fact-check response if too long (keep first 2000 chars)
                 max_factcheck_length = 2000
@@ -395,6 +413,10 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
                 )
                 scoring_prompts.append(scoring_prompt)
             
+            # Debug first scoring prompt
+            if batch_idx == 0 and scoring_prompts:
+                print(f"\n[DEBUG] First scoring prompt (truncated): {scoring_prompts[0][:500]}...")
+            
             # Generate scoring responses
             stage2_inputs = BatchedDataDict({"prompts": scoring_prompts})
             stage2_outputs = vllm_generation.generate_text(stage2_inputs)
@@ -406,7 +428,7 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
             
             # Process final results - save raw fact-checking without parsing
             for idx, (factcheck_response, scoring_response, metadata) in enumerate(zip(
-                factcheck_responses, scoring_responses, batch["extra_env_info"]
+                parsed_factcheck_responses, scoring_responses, batch["extra_env_info"]
             )):
                 result = {
                     "idx": batch["idx"][idx].item() if torch.is_tensor(batch["idx"][idx]) else batch["idx"][idx],
@@ -472,12 +494,12 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
     print(f"\n✓ Two-stage results saved to {output_file}")
     
     # Calculate two-stage metrics
-    # calculate_two_stage_metrics(results)
+    calculate_two_stage_metrics(results)
 
 
 
 def calculate_metrics(results):
-    """Calculate evaluation metrics. (UNCHANGED from original)"""
+    """Calculate evaluation metrics."""
     correct_rankings = 0
     total_rankings = 0
     
@@ -499,31 +521,35 @@ def calculate_metrics(results):
     else:
         print("\n⚠️ No valid rankings found in results")
 
-'''
+
 def calculate_two_stage_metrics(results):
-    """NEW: Calculate metrics for two-stage evaluation."""
+    """Calculate metrics for two-stage evaluation."""
+    
     total_samples = len(results)
-    error_samples = sum(1 for r in results if r.get("error", False))
-    valid_samples = total_samples - error_samples
+    two_stage_complete = sum(1 for r in results if r.get("two_stage_complete", False))
+    scoring_parse_success = sum(1 for r in results if r.get("scoring_parse_success", False))
     
-    if valid_samples == 0:
-        print(f"\n⚠️ All {total_samples} samples had errors")
-        return
+    correct_rankings = 0
+    total_rankings = 0
     
-    valid_results = [r for r in results if not r.get("error", False)]
-    rewards = [r["two_stage_reward"] for r in valid_results]
-    mean_reward = sum(rewards) / len(rewards)
+    for result in results:
+        if result.get("scoring_parse_success", False) and "predicted_ranking" in result:
+            total_rankings += 1
+            true_pref = result["metadata"].get("preference_ranking")
+            if true_pref is not None:
+                pred_pref = 0 if result["predicted_ranking"] <= 3 else 1
+                if pred_pref == true_pref:
+                    correct_rankings += 1
     
-    print(f"\n📊 Two-Stage Evaluation Metrics:")
-    print(f"  • Total Samples: {total_samples}")
-    print(f"  • Valid Samples: {valid_samples}")
-    print(f"  • Error Rate: {error_samples/total_samples:.2%}")
-    print(f"  • Mean Two-Stage Reward: {mean_reward:.2f}")
-    
-    # Additional quality metrics
-    positive_rewards = sum(1 for r in rewards if r > 0)
-    print(f"  • Positive Reward Rate: {positive_rewards/valid_samples:.2%}")
-'''
+    print(f"\n📊 Two-Stage GenRM Metrics:")
+    print(f"  • Total samples: {total_samples}")
+    print(f"  • Two-stage completion rate: {two_stage_complete/total_samples:.2%}")
+    print(f"  • Scoring parse success rate: {scoring_parse_success/total_samples:.2%}")
+    if total_rankings > 0:
+        print(f"  • Ranking accuracy: {correct_rankings/total_rankings:.2%} ({correct_rankings}/{total_rankings})")
+    else:
+        print(f"  • No valid rankings found")
+
 
 def main():
     args, overrides = parse_args()

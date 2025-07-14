@@ -124,6 +124,10 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
         "label_1": None,  # JudgeBench doesn't provide individual scores
         "label_2": None,
         "preference": preference,
+        # Add raw context and responses for two-stage evaluation
+        "context": context,
+        "response1": response1,
+        "response2": response2,
     }
     
     result2 = {
@@ -132,6 +136,10 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
         "label_1": None,  # JudgeBench doesn't provide individual scores
         "label_2": None,
         "preference": 1-preference,
+        # Add raw context and responses for two-stage evaluation
+        "context": context,
+        "response1": response2,
+        "response2": response1,
     }
     
     return [result1, result2]
@@ -156,6 +164,10 @@ def format_rmbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
             "label_1": None,  # RM-Bench doesn't have individual scores
             "label_2": None,
             "preference": 0,  # 0 = first response (chosen) is better
+            # Add raw context and responses for two-stage evaluation
+            "context": context,
+            "response1": chosen_resp,
+            "response2": rejected_resp,
         }
         examples.append(example1)
 
@@ -165,6 +177,10 @@ def format_rmbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
             "label_1": None,  # RM-Bench doesn't have individual scores
             "label_2": None,
             "preference": 1,  # 1 = second response (chosen) is better
+            # Add raw context and responses for two-stage evaluation
+            "context": context,
+            "response1": rejected_resp,
+            "response2": chosen_resp,
         }
         examples.append(example2)
 
@@ -198,6 +214,10 @@ def format_rewardbench2_example(data: dict[str, Any]) -> list[dict[str, Any]]:
             "label_2": None,
             "preference": 0,  # 0 = first response (chosen) is better
             "ground_truth": None,
+            # Add raw context and responses for two-stage evaluation
+            "context": context,
+            "response1": chosen_responses[0],
+            "response2": rejected_resp,
         }
         examples.append(example)
 
@@ -320,4 +340,3 @@ class HelpSteer3LocalDataset(torch.utils.data.Dataset):
         item = self.data[idx].copy()
         item["task_name"] = "genrm"
         return item
-

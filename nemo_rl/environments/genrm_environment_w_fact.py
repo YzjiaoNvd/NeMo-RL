@@ -16,23 +16,27 @@ from nemo_rl.environments.interfaces import (
 
 # ========================= STAGE 1: FACT-CHECKING =========================
 
-FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given responses for factual accuracy. Keep your reply brief and strictly follow the required output format. 
+FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given responses for factual accuracy. Strictly follow the required output format and keep your answer as brief as possible. 
 
 **Task:** Identify any factual errors and provide corrections when you know the accurate information.
 
-**Context:** {context}
+**Context:** 
+{context}
 
 **Responses to Fact-Check:**
 {responses}
 
 **Output Format:**
-**Response 1**
-- Factual Errors Found: [List specific factual errors, or "None identified"]
-- Corrections: [Provide correct information if you know it, or "Unknown"]
 
-**Response 2** (if applicable)
-- Factual Errors Found: [List specific factual errors, or "None identified"]
-- Corrections: [Provide correct information if you know it, or "Unknown"]"""
+[Fact Checking for Response 1]
+- Factual Errors: [List specific factual errors, or "None identified"]
+- Corrections: [Provide correct information if you know it, or "Unknown"]
+[End of Fact Checking for Response 1]
+
+[Fact Checking for Response 2] (if applicable)
+- Factual Errors: [List specific factual errors, or "None identified"]
+- Corrections: [Provide correct information if you know it, or "Unknown"]
+[End of Fact Checking for Response 2]"""
 
 # ========================= STAGE 2: SCORING =========================
 
@@ -91,6 +95,9 @@ class TwoStageMetadata(TypedDict):
     preference_ranking: Optional[int]
     factcheck_stage_complete: Optional[bool]
     factcheck_results: Optional[str]
+    context: Optional[str]
+    response1: Optional[str]
+    response2: Optional[str]
 
 # ========================= PROMPT FORMATTING =========================
 
@@ -124,12 +131,32 @@ def format_scoring_stage_prompt(context: str, response1: str, response2: Optiona
 
 # ========================= PARSING UTILITIES =========================
 
+def parse_fact_checking_response(response: str, num_responses: int=2) -> list[str]:
+    blocks: Dict[int, str] = {}
+    for idx in range(num_responses):
+        m = re.search(
+            rf"\[Fact Checking for Response {idx+1}\](.*?)"
+            rf"\[End of Fact Checking for Response {idx+1}\]",
+            response,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+        if m:
+            blocks[idx+1] = m.group(1).strip()  # raw content without the brackets
+    
+    strings = []
+    for idx in blocks:
+        body = blocks[idx]
+        strings.append(f"[Fact Checking for Response {idx}]\n{body}\n[End of Fact Checking for Response {idx}]")
+    return "\n\n".join(strings)
+
+
+
 def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, list, Optional[str], str]:
     """Parse scoring stage response."""
     try:
-        # Extract individual scores
+        # Extract individual scores - fix the regex pattern
         scores_pattern = r"\[Individual Scores\]\s*\\boxed\{([^}]+)\}\s*\[End Individual Scores\]"
-        scores_match = re.search(scores_pattern, response, re.DOTALL)
+        scores_match = re.search(scores_pattern, response, re.DOTALL | re.IGNORECASE)
         
         if not scores_match:
             return False, [], None, "Could not find individual scores"
@@ -147,12 +174,12 @@ def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, lis
         ranking = None
         if num_responses == 2:
             ranking_pattern = r"\[Ranking Score\]\s*\\boxed\{([^}]+)\}\s*\[End Ranking Score\]"
-            ranking_match = re.search(ranking_pattern, response, re.DOTALL)
+            ranking_match = re.search(ranking_pattern, response, re.DOTALL | re.IGNORECASE)
             
             if ranking_match:
                 ranking = ranking_match.group(1).strip()
             else:
-                return False, [], None, "Missing ranking score for two responses"
+                return False, scores, None, "Missing ranking score for two responses"
         
         return True, scores, ranking, ""
         
@@ -250,7 +277,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         
         # Truncate if too long (keep first 2000 chars)
         max_factcheck_length = 2000
-        truncated_response = response
+        truncated_response = parse_fact_checking_response(response)
         if len(response) > max_factcheck_length:
             truncated_response = response[:max_factcheck_length] + "\n[...truncated due to length]"
             print(f"[FACTCHECK STAGE] Truncated response from {len(response)} to {len(truncated_response)} chars")
@@ -367,6 +394,9 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         
         return batch, metrics
     
+    def shutdown(self):
+        """Clean up resources."""
+        pass
 
 
 # ========================= INTEGRATION UTILITIES =========================
@@ -391,4 +421,3 @@ def create_scoring_stage_data(context: str, response1: str, response2: Optional[
         "stage": "scoring",
         "factcheck_results": factcheck_results
     }
-
