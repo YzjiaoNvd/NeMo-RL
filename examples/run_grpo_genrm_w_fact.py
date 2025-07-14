@@ -112,7 +112,6 @@ def two_stage_genrm_data_processor(
 
 
 # ========================= TWO-STAGE GENERATION WRAPPER =========================
-
 class TwoStageGenerationWrapper:
     """Wrapper that handles the two-stage generation process."""
     
@@ -128,7 +127,7 @@ class TwoStageGenerationWrapper:
         stage1_results = self.base_generation.generate_text(stage1_batch)
         
         # Parse fact-check results and prepare stage 2
-        print("example results of fact checking: ", stage1_results.get("texts", [])[0])
+        print("example results of fact checking: ", stage1_results.get("texts", [])[0] if stage1_results.get("texts") else "NO TEXTS")
         stage2_batch = self._prepare_stage2_batch(batch, stage1_results)
         stage2_results = self.base_generation.generate_text(stage2_batch)
         
@@ -137,22 +136,34 @@ class TwoStageGenerationWrapper:
     
     def _prepare_stage1_batch(self, batch: BatchedDataDict) -> BatchedDataDict:
         """Prepare batch for fact-checking stage."""
-        # The batch already contains fact-checking prompts from the data processor
-        return batch
+        # Extract prompts from message logs for the base generation interface
+        prompts = []
+        for message_log in batch["message_log"]:
+            # Extract the user message content (fact-checking prompt)
+            if message_log and len(message_log) > 0 and message_log[0]["role"] == "user":
+                content = message_log[0]["content"]
+                prompts.append(content)
+            else:
+                prompts.append("")  # Fallback for malformed message logs
+                print(f"[WARNING] Empty or invalid message_log structure in stage 1")
+        
+        print(f"[DEBUG] Stage 1 - First prompt (truncated): {prompts[0][:200] if prompts else 'NO PROMPTS'}...")
+        return BatchedDataDict({"prompts": prompts})
     
     def _prepare_stage2_batch(self, original_batch: BatchedDataDict, stage1_results: BatchedDataDict) -> BatchedDataDict:
         """Prepare batch for scoring stage using fact-check results."""
         
         stage2_prompts = []
-        flag = True
+        stage1_texts = stage1_results.get("texts", [])
+        
         for i, (metadata, factcheck_response) in enumerate(zip(
             original_batch["extra_env_info"], 
-            stage1_results.get("texts", [])
+            stage1_texts
         )):
             # Extract stored context and responses
             context = metadata.get("context", "")
             response1 = metadata.get("response1", "")
-            response2 = metadata.get("response2")
+            response2 = metadata.get("response2", "")
             
             # Create scoring stage prompt
             scoring_prompt = format_scoring_stage_prompt(
@@ -161,6 +172,7 @@ class TwoStageGenerationWrapper:
             
             stage2_prompts.append(scoring_prompt)
         
+        print(f"[DEBUG] Stage 2 - First prompt (truncated): {stage2_prompts[0][:200] if stage2_prompts else 'NO PROMPTS'}...")
         return BatchedDataDict({"prompts": stage2_prompts})
     
     def _combine_stage_results(self, original_batch: BatchedDataDict, stage1_results: BatchedDataDict, stage2_results: BatchedDataDict) -> BatchedDataDict:
@@ -168,10 +180,12 @@ class TwoStageGenerationWrapper:
         
         # Update metadata to include fact-check results
         updated_metadata = []
+        stage1_texts = stage1_results.get("texts", [])
+        
         for i, metadata in enumerate(original_batch["extra_env_info"]):
             updated_meta = metadata.copy()
             updated_meta["factcheck_stage_complete"] = True
-            updated_meta["factcheck_results"] = stage1_results.get("texts", [""])[i]
+            updated_meta["factcheck_results"] = stage1_texts[i] if i < len(stage1_texts) else ""
             updated_metadata.append(updated_meta)
         
         # Return batch with scoring stage results and updated metadata
@@ -180,6 +194,7 @@ class TwoStageGenerationWrapper:
         result_batch["generated_texts"] = stage2_results.get("texts", [])
         
         return result_batch
+
 
 # ========================= TRAINING INTEGRATION =========================
 
@@ -205,7 +220,9 @@ def setup_two_stage_training(config, tokenizer, dataset, val_dataset):
         two_stage_generation = TwoStageGenerationWrapper(policy_generation, tokenizer)
         # Replace the generation interface
         policy_generation.generate_text = two_stage_generation.generate_two_stage
-    
+    else:
+        print("Fail to replace the generation interface to two_stage_generation")
+        
     # Setup two-stage environment
     from nemo_rl.distributed.ray_actor_environment_registry import get_actor_python_env
     

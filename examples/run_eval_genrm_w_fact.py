@@ -32,7 +32,12 @@ from nemo_rl.utils.config import load_config, parse_hydra_overrides
 from nemo_rl.models.generation import configure_generation_config
 
 # Import the two-stage environment (adjust import path as needed)
-from nemo_rl.environments.genrm_environment_w_fact import TwoStageFactCheckEnvironment
+from nemo_rl.environments.genrm_environment_w_fact import (
+    TwoStageFactCheckEnvironment,
+    format_factcheck_stage_prompt,
+    format_scoring_stage_prompt, 
+    parse_scoring_response
+)
 
 
 class GenRMEvalConfig(TypedDict):
@@ -66,8 +71,8 @@ def genrm_eval_data_processor(
         for key in ["prompt", "num_responses", "label_1", "label_2", "preference", "ground_truth"]:
             if key in datum_dict:
                 value = datum_dict[key]
-                if isinstance(value, str) and len(value) > 100:
-                    print(f"  {key}: {value[:100]}...")
+                if isinstance(value, str):
+                    print(f"  {key}: {value}...")
                 else:
                     print(f"  {key}: {value}")
     
@@ -162,8 +167,8 @@ def setup_data(tokenizer, data_config, dataset_name):
         first_example = test_dataset[0]
         print(f"  Keys: {list(first_example.keys())}")
         for key, value in first_example.items():
-            if isinstance(value, str) and len(value) > 200:
-                print(f"  {key}: {value[:200]}...")
+            if isinstance(value, str):
+                print(f"  {key}: {value}...")
             else:
                 print(f"  {key}: {value}")
     
@@ -319,9 +324,13 @@ def evaluate_genrm(vllm_generation, dataloader, output_file):
     calculate_metrics(results)
 
 
-def evaluate_two_stage_genrm(two_stage_env, dataloader, output_file):
-    """NEW: Run two-stage evaluation using environment instead of direct generation."""
+def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
+    """NEW: Run two-stage evaluation using generation wrapper."""
     results = []
+    
+    # Two-stage evaluation using direct generation (imports at top of file)
+    # Simplified approach: Use raw fact-checking output directly in scoring stage
+    # No parsing of fact-checking responses - just truncate if too long
     
     print("\n▶ Running two-stage evaluation...")
     for batch_idx, batch in enumerate(tqdm(dataloader)):
@@ -335,43 +344,123 @@ def evaluate_two_stage_genrm(two_stage_env, dataloader, output_file):
                 print(f"  First metadata: {batch['extra_env_info'][0]}")
         
         try:
-            # Use two-stage environment instead of direct generation
-            env_result = ray.get(two_stage_env.step.remote(
-                batch["message_log"],
-                batch["extra_env_info"],
-            ))
+            # STAGE 1: Generate fact-checking responses
+            print(f"[DEBUG] Starting Stage 1 (fact-checking) for batch {batch_idx}")
             
-            # Process environment results (similar to original but using environment output)
-            for idx, (reward, observation, metadata) in enumerate(zip(
-                env_result.rewards, 
-                env_result.observations,
-                batch["extra_env_info"]
+            # Create fact-checking prompts from metadata (not from message logs which contain GenRM prompts)
+            factcheck_prompts = []
+            for metadata in batch["extra_env_info"]:
+                # Extract context and responses from metadata to create fact-checking prompt
+                context = metadata.get("context", "")
+                response1 = metadata.get("response1", "")
+                response2 = metadata.get("response2", "")
+                
+                # Create proper fact-checking prompt
+                factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
+                factcheck_prompts.append(factcheck_prompt)
+            
+            # Generate fact-checking responses
+            stage1_inputs = BatchedDataDict({"prompts": factcheck_prompts})
+            stage1_outputs = vllm_generation.generate_text(stage1_inputs)
+            factcheck_responses = stage1_outputs.get("texts", [""] * len(factcheck_prompts))
+            
+            # Debug first fact-check response
+            if batch_idx == 0 and len(factcheck_responses) > 0:
+                print(f"\n[DEBUG] First fact-check response: {factcheck_responses[0]}...")
+            
+            # STAGE 2: Create scoring prompts with raw fact-check results (no parsing)
+            print(f"[DEBUG] Starting Stage 2 (scoring) for batch {batch_idx}")
+            
+            scoring_prompts = []
+            
+            for i, (metadata, factcheck_response) in enumerate(zip(
+                batch["extra_env_info"], 
+                factcheck_responses
+            )):
+                # Truncate fact-check response if too long (keep first 2000 chars)
+                max_factcheck_length = 2000
+                truncated_factcheck = factcheck_response
+                if len(factcheck_response) > max_factcheck_length:
+                    truncated_factcheck = factcheck_response[:max_factcheck_length] + "\n[...truncated]"
+                    print(f"[DEBUG] Truncated fact-check response for sample {i} from {len(factcheck_response)} to {len(truncated_factcheck)} chars")
+                
+                # Extract context and responses for scoring prompt
+                context = metadata.get("context", "")
+                response1 = metadata.get("response1", "")
+                response2 = metadata.get("response2", "")
+                
+                # Create scoring stage prompt using raw fact-check output
+                scoring_prompt = format_scoring_stage_prompt(
+                    context, response1, response2, truncated_factcheck
+                )
+                scoring_prompts.append(scoring_prompt)
+            
+            # Generate scoring responses
+            stage2_inputs = BatchedDataDict({"prompts": scoring_prompts})
+            stage2_outputs = vllm_generation.generate_text(stage2_inputs)
+            scoring_responses = stage2_outputs.get("texts", [""] * len(scoring_prompts))
+            
+            # Debug first scoring response
+            if batch_idx == 0 and len(scoring_responses) > 0:
+                print(f"\n[DEBUG] First scoring response (truncated): {scoring_responses[0][:300]}...")
+            
+            # Process final results - save raw fact-checking without parsing
+            for idx, (factcheck_response, scoring_response, metadata) in enumerate(zip(
+                factcheck_responses, scoring_responses, batch["extra_env_info"]
             )):
                 result = {
                     "idx": batch["idx"][idx].item() if torch.is_tensor(batch["idx"][idx]) else batch["idx"][idx],
-                    "two_stage_reward": reward.item(),
-                    "environment_response": observation["content"],
+                    "factcheck_response": factcheck_response,  # Raw fact-checking output
+                    "scoring_response": scoring_response,      # Raw scoring output
                     "metadata": metadata,
+                    "two_stage_complete": True,
                 }
+                
+                # Parse only the scoring response for metrics (skip fact-check parsing)
+                try:
+                    is_valid_score, scores, ranking, score_error = parse_scoring_response(
+                        scoring_response, metadata.get("num_responses", 2)
+                    )
+                    
+                    if is_valid_score:
+                        result["predicted_scores"] = [int(s) for s in scores]
+                        if ranking:
+                            result["predicted_ranking"] = int(ranking)
+                        result["scoring_parse_success"] = True
+                    else:
+                        result["scoring_parse_error"] = score_error
+                        result["scoring_parse_success"] = False
+                        
+                except Exception as e:
+                    result["scoring_parse_error"] = str(e)
+                    result["scoring_parse_success"] = False
                 
                 # Debug first result
                 if batch_idx == 0 and idx == 0:
                     print(f"\n[DEBUG] Two-stage first result:")
-                    print(f"  Reward: {reward.item()}")
-                    print(f"  Environment response: {observation['content']}")
+                    print(f"  Has factcheck_response: {len(result.get('factcheck_response', '')) > 0}")
+                    print(f"  Has scoring_response: {len(result.get('scoring_response', '')) > 0}")
+                    print(f"  Scoring parse success: {result.get('scoring_parse_success', False)}")
+                    print(f"  Has predicted scores: {'predicted_scores' in result}")
+                    print(f"  Has predicted ranking: {'predicted_ranking' in result}")
                 
                 results.append(result)
                 
         except Exception as e:
             print(f"[ERROR] Two-stage evaluation failed: {e}")
-            # Create fallback results
+            import traceback
+            traceback.print_exc()
+            
+            # Create fallback results with empty responses
             for idx in range(len(batch["message_log"])):
                 result = {
                     "idx": batch["idx"][idx].item() if torch.is_tensor(batch["idx"][idx]) else batch["idx"][idx],
-                    "two_stage_reward": -1000.0,
-                    "environment_response": f"Error: {str(e)}",
+                    "factcheck_response": "",
+                    "scoring_response": "",
                     "metadata": batch["extra_env_info"][idx],
-                    "error": True,
+                    "error": str(e),
+                    "two_stage_complete": False,
+                    "scoring_parse_success": False,
                 }
                 results.append(result)
     
@@ -383,7 +472,8 @@ def evaluate_two_stage_genrm(two_stage_env, dataloader, output_file):
     print(f"\n✓ Two-stage results saved to {output_file}")
     
     # Calculate two-stage metrics
-    calculate_two_stage_metrics(results)
+    # calculate_two_stage_metrics(results)
+
 
 
 def calculate_metrics(results):
@@ -409,7 +499,7 @@ def calculate_metrics(results):
     else:
         print("\n⚠️ No valid rankings found in results")
 
-
+'''
 def calculate_two_stage_metrics(results):
     """NEW: Calculate metrics for two-stage evaluation."""
     total_samples = len(results)
@@ -433,7 +523,7 @@ def calculate_two_stage_metrics(results):
     # Additional quality metrics
     positive_rewards = sum(1 for r in rewards if r > 0)
     print(f"  • Positive Reward Rate: {positive_rewards/valid_samples:.2%}")
-
+'''
 
 def main():
     args, overrides = parse_args()
@@ -453,10 +543,6 @@ def main():
     # Override dataset if specified in command line
     if args.dataset:
         config["eval"]["dataset_name"] = args.dataset
-    
-    # NEW: Set two-stage mode if specified
-    if args.two_stage:
-        config["eval"]["use_two_stage"] = True
     
     config: MasterConfig = OmegaConf.to_container(config, resolve=True)
     
@@ -512,38 +598,17 @@ def main():
     
     # NEW: Choose evaluation method based on config
     output_file = config["eval"]["output_file"]
-    use_two_stage = config["eval"].get("use_two_stage", False)
+    use_two_stage = config["eval"].get("use_two_stage", True)
     
     if use_two_stage:
         print("\n▶ Using two-stage evaluation mode...")
-        # Setup two-stage environment
-        two_stage_config = config.get("two_stage_env", {
-            "format_penalty": -100,
-            "factcheck_weight": 0.0,
-            "enable_factcheck_bonus": True,
-        })
-        
-        two_stage_env = TwoStageFactCheckEnvironment.remote(two_stage_config)
-        
-        # Set generation interface if the environment supports it
-        try:
-            ray.get(two_stage_env.set_generation_interface.remote(vllm_generation))
-        except AttributeError:
-            print("  ⚠️ Environment doesn't support set_generation_interface, using existing GenRM environment")
-        
-        # Run two-stage evaluation
-        evaluate_two_stage_genrm(two_stage_env, dataloader, output_file)
-        
-        # Cleanup two-stage environment
-        try:
-            ray.get(two_stage_env.shutdown.remote())
-        except AttributeError:
-            print("  ⚠️ Environment doesn't support shutdown method")
+        # Run two-stage evaluation using direct generation instead of environment
+        evaluate_two_stage_genrm(vllm_generation, dataloader, output_file)
     else:
         print("\n▶ Using standard evaluation mode...")
         # Run standard evaluation (original method)
         evaluate_genrm(vllm_generation, dataloader, output_file)
-    
+
     # Cleanup
     vllm_generation.finish_generation()
     vllm_generation.shutdown()

@@ -16,7 +16,7 @@ from nemo_rl.environments.interfaces import (
 
 # ========================= STAGE 1: FACT-CHECKING =========================
 
-FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given responses for factual accuracy.
+FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given responses for factual accuracy. Keep your reply brief and strictly follow the required output format. 
 
 **Task:** Identify any factual errors and provide corrections when you know the accurate information.
 
@@ -26,19 +26,13 @@ FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given re
 {responses}
 
 **Output Format:**
-**Response 1 Fact-Check:**
-- Factual Status: [ACCURATE/MINOR_ISSUES/MAJOR_ERRORS/SEVERE_ERRORS]
-- Issues Found: [List specific factual errors, or "None identified"]
-- Corrections: [Provide correct information if you know it, or "None needed/available"]
+**Response 1**
+- Factual Errors Found: [List specific factual errors, or "None identified"]
+- Corrections: [Provide correct information if you know it, or "Unknown"]
 
-**Response 2 Fact-Check:** (if applicable)
-- Factual Status: [ACCURATE/MINOR_ISSUES/MAJOR_ERRORS/SEVERE_ERRORS] 
-- Issues Found: [List specific factual errors, or "None identified"]
-- Corrections: [Provide correct information if you know it, or "None needed/available"]
-
-**Overall Assessment:**
-- Most Accurate Response: [1, 2, or "Similar accuracy"]
-- Key Differences: [Main factual differences between responses]"""
+**Response 2** (if applicable)
+- Factual Errors Found: [List specific factual errors, or "None identified"]
+- Corrections: [Provide correct information if you know it, or "Unknown"]"""
 
 # ========================= STAGE 2: SCORING =========================
 
@@ -130,43 +124,6 @@ def format_scoring_stage_prompt(context: str, response1: str, response2: Optiona
 
 # ========================= PARSING UTILITIES =========================
 
-def parse_factcheck_response(response: str, num_responses: int) -> Tuple[bool, Dict[str, FactCheckResult], str]:
-    """Parse fact-checking stage response."""
-    try:
-        results = {}
-        
-        # Parse Response 1
-        resp1_pattern = r"\*\*Response 1 Fact-Check:\*\*\s*\n- Factual Status: ([^\n]+)\n- Issues Found: ([^\n]+)\n- Corrections: ([^\n]+)"
-        match1 = re.search(resp1_pattern, response, re.DOTALL | re.IGNORECASE)
-        
-        if match1:
-            results["response_1"] = FactCheckResult(
-                factual_status=match1.group(1).strip(),
-                issues_found=match1.group(2).strip(), 
-                corrections=match1.group(3).strip()
-            )
-        else:
-            return False, {}, "Could not parse Response 1 fact-check"
-        
-        # Parse Response 2 if needed
-        if num_responses == 2:
-            resp2_pattern = r"\*\*Response 2 Fact-Check:\*\*\s*\n- Factual Status: ([^\n]+)\n- Issues Found: ([^\n]+)\n- Corrections: ([^\n]+)"
-            match2 = re.search(resp2_pattern, response, re.DOTALL | re.IGNORECASE)
-            
-            if match2:
-                results["response_2"] = FactCheckResult(
-                    factual_status=match2.group(1).strip(),
-                    issues_found=match2.group(2).strip(),
-                    corrections=match2.group(3).strip()
-                )
-            else:
-                return False, {}, "Could not parse Response 2 fact-check"
-        
-        return True, results, ""
-        
-    except Exception as e:
-        return False, {}, f"Parsing error: {str(e)}"
-
 def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, list, Optional[str], str]:
     """Parse scoring stage response."""
     try:
@@ -236,8 +193,9 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         self.factcheck_bonus_multiplier = cfg.get("factcheck_bonus_multiplier", 0.0)
         logging.basicConfig(level=logging.INFO)
     
+
     def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[TwoStageMetadata]) -> EnvironmentReturn:
-        """Process two-stage fact-checking and scoring."""
+        """Process two-stage fact-checking and scoring - simplified version."""
         
         rewards = []
         observations = []
@@ -253,12 +211,12 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             
             # Check which stage we're in
             if not meta.get("factcheck_stage_complete", False):
-                # STAGE 1: Fact-checking
+                # STAGE 1: Fact-checking (no parsing, just store raw response)
                 reward, obs, updated_meta = self._process_factcheck_stage(
                     assistant_response, meta
                 )
             else:
-                # STAGE 2: Scoring with fact-check results
+                # STAGE 2: Scoring with raw fact-check results
                 reward, obs, updated_meta = self._process_scoring_stage(
                     assistant_response, meta
                 )
@@ -280,49 +238,42 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             rewards=rewards_tensor,
             terminateds=terminateds,
         )
-    
+
+
     def _process_factcheck_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
-        """Process fact-checking stage."""
+        """Process fact-checking stage - simplified version without parsing."""
         
-        # Parse fact-checking response
-        is_valid, factcheck_results, error_msg = parse_factcheck_response(
-            response, metadata["num_responses"]
-        )
+        # Debug: Show response length and first part
+        print(f"[FACTCHECK STAGE] Raw response length: {len(response)}")
+        if len(response) > 0:
+            print(f"[FACTCHECK STAGE] First 200 chars: {response[:200]}...")
         
-        if not is_valid:
-            print(f"[FACTCHECK STAGE] Parse error: {error_msg}")
-            # Return penalty and stay in same stage
-            return float(self.format_penalty), {
-                "role": "environment",
-                "content": f"Fact-check stage format error: {error_msg}"
-            }, metadata
+        # Truncate if too long (keep first 2000 chars)
+        max_factcheck_length = 2000
+        truncated_response = response
+        if len(response) > max_factcheck_length:
+            truncated_response = response[:max_factcheck_length] + "\n[...truncated due to length]"
+            print(f"[FACTCHECK STAGE] Truncated response from {len(response)} to {len(truncated_response)} chars")
         
-        # Store fact-check results and move to next stage  
+        # Store raw fact-check results and move to scoring stage  
         updated_metadata = metadata.copy()
         updated_metadata["factcheck_stage_complete"] = True
-        updated_metadata["factcheck_results"] = json.dumps({
-            key: {
-                "factual_status": result.factual_status,
-                "issues_found": result.issues_found, 
-                "corrections": result.corrections
-            } for key, result in factcheck_results.items()
-        })
+        updated_metadata["factcheck_results"] = truncated_response  # Store raw response directly
         
-        print(f"[FACTCHECK STAGE] Completed successfully")
-        print(f"  Results: {list(factcheck_results.keys())}")
-        for key, result in factcheck_results.items():
-            print(f"  {key}: {result.factual_status}")
+        print(f"[FACTCHECK STAGE] Completed successfully - stored raw response")
         
         # No reward yet - waiting for scoring stage
         return 0.0, {
             "role": "environment", 
             "content": "Fact-checking stage completed. Proceeding to scoring stage."
         }, updated_metadata
-    
+
+
+
     def _process_scoring_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
-        """Process scoring stage with fact-check results."""
+        """Process scoring stage with raw fact-check results - simplified version."""
         
-        # Parse scoring response
+        # Parse scoring response (still need this for reward calculation)
         is_valid, scores, ranking, error_msg = parse_scoring_response(
             response, metadata["num_responses"]
         )
@@ -334,7 +285,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                 "content": f"Scoring stage format error: {error_msg}"
             }, None  # Terminate episode
         
-        # Calculate base reward from scoring accuracy
+        # Calculate base reward from scoring accuracy (no fact-checking modifier)
         base_reward = 0.0
         try:
             if metadata["num_responses"] == 1:
@@ -358,36 +309,28 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                 "content": f"Score parsing error: {e}"
             }, None
         
-        # Apply fact-checking bonus/penalty
-        factcheck_modifier = 1.0
-        if metadata.get("factcheck_results"):
-            try:
-                factcheck_data = json.loads(metadata["factcheck_results"])
-                factcheck_results_parsed = {
-                    key: FactCheckResult(**data) for key, data in factcheck_data.items()
-                }
-                factcheck_modifier = calculate_factcheck_modifier(factcheck_results_parsed)
-                
-            except Exception as e:
-                print(f"[SCORING STAGE] Factcheck modifier error: {e}")
+        # Final reward is just the base accuracy (no fact-checking bonus/penalty)
+        final_reward = base_reward
         
-        # Final reward combines base accuracy with fact-checking quality
-        factcheck_bonus = base_reward * factcheck_modifier * self.factcheck_bonus_multiplier
-        final_reward = base_reward + factcheck_bonus
+        # Get raw fact-checking results for logging
+        raw_factcheck = metadata.get("factcheck_results", "")
+        factcheck_length = len(raw_factcheck)
         
         print(f"[SCORING STAGE] Completed")
         print(f"  Base reward: {base_reward}")
-        print(f"  Factcheck modifier: {factcheck_modifier:.2f}")
-        print(f"  Factcheck bonus: {factcheck_bonus:.2f}")
         print(f"  Final reward: {final_reward}")
+        print(f"  Used fact-check input length: {factcheck_length} chars")
         
         return float(final_reward), {
             "role": "environment",
-            "content": f"Two-stage evaluation complete. Base: {base_reward}, Factcheck bonus: {factcheck_bonus:.1f}, Final: {final_reward}"
+            "content": f"Two-stage evaluation complete. Final reward: {final_reward} (used {factcheck_length} char fact-check input)"
         }, None  # Terminate episode
-    
+
+
+
+
     def global_post_process_and_metrics(self, batch: BatchedDataDict) -> tuple[BatchedDataDict, dict]:
-        """Calculate metrics for two-stage approach."""
+        """Calculate metrics for simplified two-stage approach."""
         rewards = batch.get("rewards", torch.tensor([]))
         num_samples = len(batch.get("idx", []))
         
@@ -405,7 +348,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         if len(valid_rewards) > 0:
             mean_valid_reward = float(np.mean(valid_rewards))
             positive_reward_rate = float(np.mean(valid_rewards > 0))
-            high_reward_rate = float(np.mean(valid_rewards > 5))  # Arbitrary threshold
+            high_reward_rate = float(np.mean(valid_rewards > -5))  # Less than 5 points penalty
         else:
             mean_valid_reward = 0.0
             positive_reward_rate = 0.0
@@ -419,14 +362,12 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             "high_reward_rate": high_reward_rate,
             "num_samples": num_samples,
             "valid_samples": len(valid_rewards),
-            "factcheck_bonus_multiplier": self.factcheck_bonus_multiplier,
+            "approach": "simplified_two_stage",  # Indicate this is the simplified version
         }
         
         return batch, metrics
     
-    def shutdown(self):
-        """Clean up resources."""
-        pass
+
 
 # ========================= INTEGRATION UTILITIES =========================
 
@@ -451,48 +392,3 @@ def create_scoring_stage_data(context: str, response1: str, response2: Optional[
         "factcheck_results": factcheck_results
     }
 
-# ========================= EXAMPLE USAGE =========================
-
-def example_two_stage_usage():
-    """Example of how to use the two-stage system."""
-    
-    # Stage 1: Generate fact-check
-    context = "What is the capital of France?"
-    response1 = "The capital of France is Paris, which has been the capital since 1789."
-    response2 = "The capital of France is Lyon, a major city in the south."
-    
-    factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
-    print("=== STAGE 1: FACT-CHECKING ===")
-    print(factcheck_prompt)
-    
-    # Mock fact-check response (in practice, this comes from model generation)
-    mock_factcheck_response = """**Response 1 Fact-Check:**
-- Factual Status: MINOR_ISSUES
-- Issues Found: Paris became capital much earlier than 1789, around 987 AD
-- Corrections: Paris has been the de facto capital since around 987 AD
-
-**Response 2 Fact-Check:**
-- Factual Status: MAJOR_ERRORS
-- Issues Found: Lyon is not the capital of France, Paris is the capital
-- Corrections: The capital of France is Paris, not Lyon
-
-**Overall Assessment:**
-- Most Accurate Response: 1
-- Key Differences: Response 1 is mostly correct with wrong date, Response 2 has fundamental error"""
-    
-    # Parse fact-check results
-    is_valid, results, error = parse_factcheck_response(mock_factcheck_response, 2)
-    print(f"\nFact-check parsing successful: {is_valid}")
-    if is_valid:
-        for key, result in results.items():
-            print(f"{key}: {result.factual_status}")
-    
-    # Stage 2: Generate scores using fact-check results
-    scoring_prompt = format_scoring_stage_prompt(context, response1, response2, mock_factcheck_response)
-    print("\n=== STAGE 2: SCORING ===")
-    print(scoring_prompt)
-    
-    return factcheck_prompt, scoring_prompt
-
-if __name__ == "__main__":
-    example_two_stage_usage()

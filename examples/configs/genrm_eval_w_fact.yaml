@@ -4,6 +4,7 @@ eval:
   batch_size: 8
   seed: 42
   output_file: "results/genrm_eval.json"
+  use_two_stage: true
 
 generation:
   backend: "vllm"
