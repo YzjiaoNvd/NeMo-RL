@@ -3,13 +3,13 @@ set -e
 
 # Base directory (from argument or default)
 BASE_DIR="${1:-/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/2grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_16_num_prompts_128}"
-DATASET="${2:-rmbench}"
 HF_DIR="${BASE_DIR}/HF"
 RESULTS_DIR="${BASE_DIR}/outputs"
+DATASET="rmbench"
 
 
 # Find evaluation script
-EVAL_SCRIPT="$(dirname "$0")/evaluate_genrm_one_step.sh"
+EVAL_SCRIPT="$(dirname "$0")/evaluate_genrm_one_step_w_fact.sh"
 if [ ! -f "$EVAL_SCRIPT" ]; then
     echo "Error: evaluate_genrm_one_step.sh not found"
     exit 1

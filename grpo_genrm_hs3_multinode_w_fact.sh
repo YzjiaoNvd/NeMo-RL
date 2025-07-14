@@ -6,16 +6,17 @@ GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
 CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
 export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
 
-
 # Number of nodes for the job
-NUM_ACTOR_NODES=2
+NUM_ACTOR_NODES=8
 
 # Model and training configuration
 FSDP2=True
-MODEL="Qwen/Qwen2.5-7B-Instruct"
-MODEL_NAME="qwen25_7b"
+#MODEL="Qwen/Qwen2.5-7B-Instruct"
+#MODEL_NAME="qwen25_7b"
 #MODEL="meta-llama/Llama-3.1-8B-Instruct"
 #MODEL_NAME="llama3.1_8B"
+MODEL="Qwen/Qwen3-8B"
+MODEL_NAME="qwen3_8b"
 
 
 ACT_CKPT=True
@@ -44,7 +45,7 @@ PPO_OUTFILE="${ACTOR_LOG_DIR}/%j_%t.log"
 
 
 # Construct the command to run
-COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm.py \
+COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
     ++logger.wandb.name=${NAME} \
     ++logger.wandb_enabled=True \
     logger.wandb.project=${project_name} \
@@ -98,8 +99,8 @@ sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_ppo \
     --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_fact \
-    --partition=batch_short \
-    --time=1:00:00 \
+    --partition=batch \
+    --time=4:00:00 \
     --gres=gpu:8 \
     --mem=0 \
     --dependency=singleton \

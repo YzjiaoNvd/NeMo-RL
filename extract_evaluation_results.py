@@ -3,7 +3,7 @@ import json
 import re
 from collections import defaultdict
 import argparse
-
+import random
 
 def calculate_accuracy(data: list[dict]):
     correct_predictions = 0
@@ -18,10 +18,15 @@ def calculate_accuracy(data: list[dict]):
         preference_ranking = metadata.get('preference_ranking')
 
         # Ensure the required keys exist
-        if predicted_ranking is not None and preference_ranking is not None:
+
+        if preference_ranking is not None:
             # Apply the mapping rule
             # 0 if predicted_ranking <= 3 else 1
-            mapped_prediction = 0 if predicted_ranking <= 3 else 1
+            if predicted_ranking is None:
+                mapped_prediction = random.choice([0, 1])
+            
+            else:
+                mapped_prediction = 0 if predicted_ranking <= 3 else 1
                             
             # Check if the prediction is correct
             if mapped_prediction == preference_ranking:

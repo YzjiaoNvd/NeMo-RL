@@ -30,7 +30,7 @@ kl=0.001
 reward="r0"
 data_version="_base" # 
 
-NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}"
+NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}_fact"
 
 RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
 mkdir -p $RESULTS_DIR
@@ -43,7 +43,7 @@ PPO_OUTFILE="${ACTOR_LOG_DIR}/%j_%t.log"
 
 
 # Construct the command to run
-COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm.py \
+COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
     ++logger.wandb.name=${NAME} \
     ++logger.wandb_enabled=True \
     logger.wandb.project=${project_name} \
@@ -94,7 +94,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_ppo \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version} \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_w_fact \
     --partition=batch \
     --time=4:00:00 \
     --gres=gpu:8 \

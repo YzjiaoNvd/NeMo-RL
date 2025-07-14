@@ -233,7 +233,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
     def __init__(self, cfg: dict):
         self.cfg = cfg
         self.format_penalty = cfg.get("format_penalty", -100)
-        self.factcheck_bonus_multiplier = cfg.get("factcheck_bonus_multiplier", 0.2)
+        self.factcheck_bonus_multiplier = cfg.get("factcheck_bonus_multiplier", 0.0)
         logging.basicConfig(level=logging.INFO)
     
     def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[TwoStageMetadata]) -> EnvironmentReturn:

@@ -27,7 +27,6 @@ from nemo_rl.models.generation import configure_generation_config
 from nemo_rl.utils.config import load_config, parse_hydra_overrides
 from nemo_rl.utils.logger import get_next_experiment_dir
 from nemo_rl.data.hf_datasets.reward_benchmarks import HelpSteer3LocalDataset
-OmegaConf.register_new_resolver("mul", lambda a, b: a * b)
 
 
 def helpsteer3_genrm_data_processor(
@@ -59,14 +58,14 @@ def helpsteer3_genrm_data_processor(
         "role": "user",
         "content": prompt,
     }
-    message: list[str] = tokenizer.apply_chat_template(  # type: ignore
+    message = tokenizer.apply_chat_template(  # type: ignore
         [user_message],
         tokenize=False,
         add_generation_prompt=True,
         add_special_tokens=False,
     )
+
     user_message["token_ids"] = tokenizer(message, return_tensors="pt")["input_ids"][0]
-    user_message["content"] = message[0]
     message_log.append(user_message)
     
     # Calculate total length

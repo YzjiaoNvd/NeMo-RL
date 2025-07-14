@@ -3,12 +3,14 @@ import argparse
 import os
 import json
 import torch
+import pprint
 import numpy as np
 from tqdm import tqdm
 from typing import Any, Optional, Dict, List
 from collections import defaultdict
 from pathlib import Path
 
+from omegaconf import OmegaConf
 from nemo_rl.algorithms.grpo import MasterConfig, grpo_train, setup
 from nemo_rl.algorithms.utils import get_tokenizer
 from nemo_rl.data import DataConfig
@@ -72,7 +74,6 @@ def two_stage_genrm_data_processor(
         add_special_tokens=False,
     )
     user_message["token_ids"] = tokenizer(message, return_tensors="pt")["input_ids"][0]
-    user_message["content"] = message[0]
     message_log.append(user_message)
     
     # Calculate total length
@@ -96,9 +97,9 @@ def two_stage_genrm_data_processor(
     }
     
     # Store context and responses for scoring stage
-    metadata["_context"] = context
-    metadata["_response1"] = response1
-    metadata["_response2"] = response2
+    metadata["context"] = context
+    metadata["response1"] = response1
+    metadata["response2"] = response2
 
     return DatumSpec(
         message_log=message_log,
@@ -127,6 +128,7 @@ class TwoStageGenerationWrapper:
         stage1_results = self.base_generation.generate_text(stage1_batch)
         
         # Parse fact-check results and prepare stage 2
+        print("example results of fact checking: ", stage1_results.get("texts", [])[0])
         stage2_batch = self._prepare_stage2_batch(batch, stage1_results)
         stage2_results = self.base_generation.generate_text(stage2_batch)
         
@@ -142,15 +144,15 @@ class TwoStageGenerationWrapper:
         """Prepare batch for scoring stage using fact-check results."""
         
         stage2_prompts = []
-        
+        flag = True
         for i, (metadata, factcheck_response) in enumerate(zip(
             original_batch["extra_env_info"], 
             stage1_results.get("texts", [])
         )):
             # Extract stored context and responses
-            context = metadata.get("_context", "")
-            response1 = metadata.get("_response1", "")
-            response2 = metadata.get("_response2")
+            context = metadata.get("context", "")
+            response1 = metadata.get("response1", "")
+            response2 = metadata.get("response2")
             
             # Create scoring stage prompt
             scoring_prompt = format_scoring_stage_prompt(
@@ -209,13 +211,13 @@ def setup_two_stage_training(config, tokenizer, dataset, val_dataset):
     
     two_stage_env_config = {
         "format_penalty": -100,
-        "factcheck_bonus_multiplier": 0.2,  # Adjust as needed
+        "factcheck_bonus_multiplier": 0.0,  # Adjust as needed
     }
     
     two_stage_env = TwoStageFactCheckEnvironment.options(
         runtime_env={
             "py_executable": get_actor_python_env(
-                "two_stage_factcheck_implementation.TwoStageFactCheckEnvironment"
+                "nemo_rl.environments.genrm_environment_w_fact.TwoStageFactCheckEnvironment"
             ),
             "env_vars": dict(os.environ),
         }
@@ -319,6 +321,8 @@ def setup_two_stage_data(tokenizer, data_config, env_configs):
             max_seq_length=data_config["max_input_seq_length"],
         )
     
+
+    
     return processed_train_dataset, processed_val_dataset
 
 # ========================= MAIN TRAINING SCRIPT =========================
@@ -335,26 +339,28 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
 
 
 def main():
-    """Main training function for two-stage GenRM."""
-    
-    args, overrides = parse_args()  # Your existing function
-    
+    """Main entry point."""
+    # Parse arguments
+    args, overrides = parse_args()
+
     if not args.config:
         args.config = os.path.join(
-            os.path.dirname(__file__), "configs", "two_stage_grpo_genrm.yaml"
+            os.path.dirname(__file__), "configs", "grpo_genrm_w_fact.yaml"
         )
-    
+
     config = load_config(args.config)
     print(f"Loaded configuration from: {args.config}")
-    
+
     if overrides:
         print(f"Overrides: {overrides}")
         config = parse_hydra_overrides(config, overrides)
-    
+
+    config: MasterConfig = OmegaConf.to_container(config, resolve=True)
+    print("Applied CLI overrides")
 
     # Print config
     print("Final config:")
-    print(config)
+    pprint.pprint(config)
     
     # Get the next experiment directory
     config["logger"]["log_dir"] = get_next_experiment_dir(config["logger"]["log_dir"])
@@ -366,11 +372,12 @@ def main():
     
     # Setup tokenizer
     tokenizer = get_tokenizer(config["policy"]["tokenizer"])
+    assert config["policy"]["generation"] is not None, "A generation config is required for GRPO"
     config["policy"]["generation"] = configure_generation_config(
         config["policy"]["generation"], tokenizer
     )
-    
-    # Setup two-stage data
+
+    # Setup data
     train_dataset, val_dataset = setup_two_stage_data(
         tokenizer, 
         config["data"], 

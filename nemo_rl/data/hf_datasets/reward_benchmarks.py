@@ -284,7 +284,10 @@ class HelpSteer3LocalDataset(torch.utils.data.Dataset):
                         "label_1": one["args"]["helpfulness_1"],  
                         "label_2": one["args"]["helpfulness_2"],
                         "preference": preference, 
-                        "preference_ranking": one["args"]["preference_ranking"]
+                        "preference_ranking": one["args"]["preference_ranking"],
+                        "context": one["args"]["context"],
+                        "response1": one["args"]["response1"],
+                        "response2": one["args"]["response2"],
                     }
                     data.append(example)
 
@@ -295,7 +298,9 @@ class HelpSteer3LocalDataset(torch.utils.data.Dataset):
                         "label_2": one["args"]["helpfulness_1"],
                         "preference": 1 - preference, 
                         "preference_ranking": 7 - one["args"]["preference_ranking"],
-                        "context": one["args"]["context"]
+                        "context": one["args"]["context"],
+                        "response1": one["args"]["response2"],
+                        "response2": one["args"]["response1"],
                     }
                     data.append(example)
         
