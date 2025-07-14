@@ -382,10 +382,11 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
             
             # Debug first fact-check response
             if batch_idx == 0 and len(factcheck_responses) > 0:
-                print(f"\n[DEBUG] First fact-check response: {factcheck_responses[0][:500]}...")
+                print(f"\n[DEBUG] First fact-check response: {factcheck_responses[0]}...")
             
             parsed_factcheck_responses = [parse_fact_checking_response(rep) for rep in factcheck_responses]
-            
+            #parsed_factcheck_responses = factcheck_responses
+
             # STAGE 2: Create scoring prompts with raw fact-check results (no parsing)
             print(f"[DEBUG] Starting Stage 2 (scoring) for batch {batch_idx}")
             

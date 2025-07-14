@@ -16,68 +16,110 @@ from nemo_rl.environments.interfaces import (
 
 # ========================= STAGE 1: FACT-CHECKING =========================
 
-FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given responses for factual accuracy. Strictly follow the required output format and keep your answer as brief as possible. 
+FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and keep your answer as brief as possible. 
 
 **Task:** Identify any factual errors and provide corrections when you know the accurate information.
 
 **Context:** 
 {context}
 
-**Responses to Fact-Check:**
+**Responses:**
 {responses}
 
 **Output Format:**
-
 [Fact Checking for Response 1]
 - Factual Errors: [List specific factual errors, or "None identified"]
 - Corrections: [Provide correct information if you know it, or "Unknown"]
 [End of Fact Checking for Response 1]
 
-[Fact Checking for Response 2] (if applicable)
+[Fact Checking for Response 2] 
 - Factual Errors: [List specific factual errors, or "None identified"]
 - Corrections: [Provide correct information if you know it, or "Unknown"]
 [End of Fact Checking for Response 2]"""
 
 # ========================= STAGE 2: SCORING =========================
 
-SCORING_STAGE_PROMPT = """You are a response quality evaluator. Score these responses considering both helpfulness and factual accuracy.
+SCORING_STAGE_PROMPT = """You are a skilled little expert at scoring responses. You should evaluate given responses based on the given judging criteria.
+Given the context of the conversation (the last turn is the User's query), two responses from the Assistant, and the fact checking results for these responses, you need to refer to the [Helpfulness Scoring Guidelines] to score each individual response.
+If there are two responses, you need to also give a ranking score based on the [Ranking Scoring Guidelines].
+Before scoring, please analyze step by step. Your scoring needs to be as strict as possible.
 
-**Scoring Guidelines (1-5):**
-- **5**: Extremely helpful and factually accurate
-- **4**: Very helpful with minor factual imprecisions  
-- **3**: Moderately helpful but some factual concerns
-- **2**: Limited helpfulness due to factual issues
-- **1**: Not helpful or contains serious factual errors
+[Helpfulness Scoring Guidelines]
 
-**Ranking Guidelines (1-6 for two responses):**
-1 = Response 1 much better | 2 = Response 1 better | 3 = Response 1 slightly better
-4 = Response 2 slightly better | 5 = Response 2 better | 6 = Response 2 much better
+When evaluating Helpfulness, consider the following factors:
 
-**Context:** {context}
+- Correctness/Completeness: Is the response accurate and complete?
+- Coherence/Clarity: Is the response clear, coherent, and easy to understand?
+- Instruction following: Does the response follow the instructions and fulfill the user's request?
+- Relevance: Is the response relevant to the user's query/input?
+- Level of Detail and Creativity: Does the response provide enough detail without being too verbose? Does it show creativity but not hallucinations?
 
-**Responses:**
+**Score 5: Extremely Helpful**
+
+- The response is extremely helpful and completely aligned with the spirit of what the prompt was asking for.
+- It accurately acts on the user's request, without unnecessary information.
+- If a user request is not possible/in line with desired model behavior, a helpful response provides useful context and rationale.
+
+**Score 4: Mostly Helpful**
+
+- The response is mostly helpful and mainly aligned with what the user was looking for.
+- There is still some room for improvement, but the response is generally useful.
+
+**Score 3: Partially Helpful**
+
+- The response is partially helpful but misses the overall goal of the user's query/input in some way.
+- The response did not fully satisfy what the user was looking for.
+
+**Score 2: Borderline Unhelpful**
+
+- The response is borderline unhelpful and mostly does not capture what the user was looking for.
+- However, it is still usable and helpful in a small way.
+
+**Score 1: Not Helpful**
+
+- The response is not useful or helpful at all.
+- The response completely missed the essence of what the user wanted.
+
+[Ranking Scoring Guidelines]
+
+Ranking score is used to rank the two responses based on their helpfulness. Even if you give the same individual helpfulness score for both responses, you need to differentiate them strictly.
+The ranking score is a number between 1 and 6, where:
+1 = Response 1 is much better than Response 2
+2 = Response 1 is better than Response 2
+3 = Response 1 is slightly better than Response 2
+4 = Response 2 is slightly better than Response 1
+5 = Response 2 is better than Response 1
+6 = Response 2 is much better than Response 1
+
+#### Conversation Context ####
+{context}
+
+#### Responses to be Scored ####
 {responses}
 
-**Fact-Check Results:**
+#### Fact Checking Results as Reference ####
 {factcheck_results}
 
-**Analysis and Scoring:**
 
-[Analysis Response 1]
-[Consider both helpfulness and factual accuracy from fact-check]
-[End Analysis Response 1]
+#### Output Format Requirements ####
+[The Begin of Analysis on Response 1]
+Analysis on response 1
+[The End of Analysis on Response 1]
 
-[Analysis Response 2] (if applicable)
-[Consider both helpfulness and factual accuracy from fact-check]  
-[End Analysis Response 2]
+[The Begin of Analysis on Response 2]
+Analysis on response 2
+[The End of Analysis on Response 2]
 
-[Individual Scores]
-\\boxed{{{scores_format}}}
-[End Individual Scores]
+[The Begin of Individual Scores]
+\\boxed{{x, y}}  (the scores of each response in order)
+[The End of Individual Scores]
 
-[Ranking Score] (if two responses)
-\\boxed{{ranking}}
-[End Ranking Score]"""
+[The Begin of Ranking Score]
+\\boxed{{z}} 
+[The End of Ranking Score]
+"""
+
+
 
 # ========================= DATA STRUCTURES =========================
 
@@ -131,60 +173,73 @@ def format_scoring_stage_prompt(context: str, response1: str, response2: Optiona
 
 # ========================= PARSING UTILITIES =========================
 
-def parse_fact_checking_response(response: str, num_responses: int=2) -> list[str]:
-    blocks: Dict[int, str] = {}
-    for idx in range(num_responses):
-        m = re.search(
-            rf"\[Fact Checking for Response {idx+1}\](.*?)"
-            rf"\[End of Fact Checking for Response {idx+1}\]",
-            response,
-            flags=re.DOTALL | re.IGNORECASE,
-        )
-        if m:
-            blocks[idx+1] = m.group(1).strip()  # raw content without the brackets
-    
-    strings = []
-    for idx in blocks:
-        body = blocks[idx]
-        strings.append(f"[Fact Checking for Response {idx}]\n{body}\n[End of Fact Checking for Response {idx}]")
-    return "\n\n".join(strings)
+def parse_fact_checking_response(response: str, num_responses: int = 2) -> str:
+    """
+    Parse fact-checking response and extract structured content.
+    Returns the formatted fact-checking blocks, or the raw response if parsing fails.
+    """
+    try:
+        blocks = {}
+        # Try to find each response block
+        for idx in range(num_responses):
+            response_num = idx + 1
+            # Primary regex pattern - matches the exact format
+            pattern = rf"\[Fact Checking for Response {response_num}\]\s*(.*?)\s*\[End of Fact Checking for Response {response_num}\]"
+            match = re.search(pattern, response, flags=re.DOTALL | re.IGNORECASE)
+            
+            if match:
+                content = match.group(1).strip()
+                blocks[response_num] = content
+        
+        # If we found structured blocks, reconstruct them properly
+        structured_parts = []
+        for response_num in blocks:
+            content = blocks[response_num]
+            structured_block = f"[Fact Checking for Response {response_num}]\n{content}\n[End of Fact Checking for Response {response_num}]"
+            structured_parts.append(structured_block)
+        return "\n\n".join(structured_parts)
 
-
+    except Exception as e:
+        return "No valid fact checking results."
 
 def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, list, Optional[str], str]:
-    """Parse scoring stage response."""
     try:
-        # Extract individual scores - fix the regex pattern
-        scores_pattern = r"\[Individual Scores\]\s*\\boxed\{([^}]+)\}\s*\[End Individual Scores\]"
+        # Extract individual scores using updated format
+        scores_pattern = r"\[The Begin of Individual Scores\]\s*\\boxed\{([^}]+)\}\s*.*?\[The End of Individual Scores\]"
         scores_match = re.search(scores_pattern, response, re.DOTALL | re.IGNORECASE)
         
         if not scores_match:
-            return False, [], None, "Could not find individual scores"
+            return False, [], None, "Could not find individual scores section with format [The Begin of Individual Scores]"
         
         scores_str = scores_match.group(1).strip()
         scores = [s.strip() for s in scores_str.split(',')]
         
         # Validate score count
         if num_responses == 1 and len(scores) != 1:
-            return False, [], None, f"Expected 1 score, got {len(scores)}"
+            return False, [], None, f"Expected 1 score for single response, got {len(scores)}: {scores}"
         elif num_responses == 2 and len(scores) != 2:
-            return False, [], None, f"Expected 2 scores, got {len(scores)}"
+            return False, [], None, f"Expected 2 scores for two responses, got {len(scores)}: {scores}"
         
         # Extract ranking if two responses
         ranking = None
         if num_responses == 2:
-            ranking_pattern = r"\[Ranking Score\]\s*\\boxed\{([^}]+)\}\s*\[End Ranking Score\]"
+            ranking_pattern = r"\[The Begin of Ranking Score\]\s*\\boxed\{([^}]+)\}\s*.*?\[The End of Ranking Score\]"
             ranking_match = re.search(ranking_pattern, response, re.DOTALL | re.IGNORECASE)
             
-            if ranking_match:
-                ranking = ranking_match.group(1).strip()
-            else:
-                return False, scores, None, "Missing ranking score for two responses"
+            if not ranking_match:
+                return False, scores, None, "Missing ranking score section with format [The Begin of Ranking Score]"
+            
+            ranking = ranking_match.group(1).strip()
+            
+            # Validate ranking is a single value
+            if ',' in ranking:
+                return False, scores, None, "Ranking should be a single value, found comma"
         
         return True, scores, ranking, ""
         
     except Exception as e:
         return False, [], None, f"Scoring parse error: {str(e)}"
+
 
 # ========================= FACT-CHECK SCORING =========================
 
