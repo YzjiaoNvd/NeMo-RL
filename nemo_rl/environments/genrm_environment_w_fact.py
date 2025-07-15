@@ -16,7 +16,7 @@ from nemo_rl.environments.interfaces import (
 
 # ========================= STAGE 1: FACT-CHECKING =========================
 
-FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and keep your answer as brief as possible. 
+FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and make your answer as brief as possible. 
 
 **Task:** Identify any factual errors and provide corrections when you know the accurate information.
 
@@ -324,19 +324,21 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
 
     def _process_factcheck_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
         """Process fact-checking stage - simplified version without parsing."""
-        
+
         # Debug: Show response length and first part
         print(f"[FACTCHECK STAGE] Raw response length: {len(response)}")
-        if len(response) > 0:
-            print(f"[FACTCHECK STAGE] First 200 chars: {response[:200]}...")
         
-        # Truncate if too long (keep first 2000 chars)
-        max_factcheck_length = 2000
-        truncated_response = parse_fact_checking_response(response)
-        if len(response) > max_factcheck_length:
-            truncated_response = response[:max_factcheck_length] + "\n[...truncated due to length]"
-            print(f"[FACTCHECK STAGE] Truncated response from {len(response)} to {len(truncated_response)} chars")
-        
+        # Truncate if too long (keep first 5000 chars)
+        max_factcheck_length = 5000
+        parsed_response = parse_fact_checking_response(response)
+        print(f"[FACTCHECK STAGE] Parsed response length: {len(parsed_response)}")
+
+        if len(parsed_response) > max_factcheck_length:
+            truncated_response = parsed_response[:max_factcheck_length] + "\n[...truncated due to length]"
+            print(f"[FACTCHECK STAGE] Truncated response from {len(parsed_response)} to {len(truncated_response)} chars")
+        else:
+            truncated_response = parsed_response
+
         # Store raw fact-check results and move to scoring stage  
         updated_metadata = metadata.copy()
         updated_metadata["factcheck_stage_complete"] = True

@@ -380,12 +380,13 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
             stage1_outputs = vllm_generation.generate_text(stage1_inputs)
             factcheck_responses = stage1_outputs.get("texts", [""] * len(factcheck_prompts))
             
-            # Debug first fact-check response
-            if batch_idx == 0 and len(factcheck_responses) > 0:
-                print(f"\n[DEBUG] First fact-check response: {factcheck_responses[0]}...")
-            
+
             parsed_factcheck_responses = [parse_fact_checking_response(rep) for rep in factcheck_responses]
             #parsed_factcheck_responses = factcheck_responses
+
+            # Debug first fact-check response
+            if batch_idx == 0 and len(factcheck_responses) > 0:
+                print(f"\n[DEBUG] First parsed_factcheck_responses: {parsed_factcheck_responses[0]}...")
 
             # STAGE 2: Create scoring prompts with raw fact-check results (no parsing)
             print(f"[DEBUG] Starting Stage 2 (scoring) for batch {batch_idx}")
@@ -397,7 +398,7 @@ def evaluate_two_stage_genrm(vllm_generation, dataloader, output_file):
                 parsed_factcheck_responses
             )):
                 # Truncate fact-check response if too long (keep first 2000 chars)
-                max_factcheck_length = 2000
+                max_factcheck_length = 5000
                 truncated_factcheck = factcheck_response
                 if len(factcheck_response) > max_factcheck_length:
                     truncated_factcheck = factcheck_response[:max_factcheck_length] + "\n[...truncated]"
