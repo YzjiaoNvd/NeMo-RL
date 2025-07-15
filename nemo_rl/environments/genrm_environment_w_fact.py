@@ -293,13 +293,13 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             
             # Extract assistant's response
             assistant_response = ""
-            for msg in conversation:
+            for msg in reversed(conversation):
                 if msg["role"] == "assistant":
                     assistant_response = msg["content"]
                     break
-            
-            print(f"  Assistant response length: {len(assistant_response)}")
-            print(f"  Assistant response preview: {assistant_response[:100]}...")
+            if i < 2:  # First couple samples
+                print(f"  Assistant response length: {len(assistant_response)}")
+                print(f"  Assistant response preview: {assistant_response[:100]}...")
             
             # Check which stage we're in
             if not meta.get("factcheck_stage_complete"):
@@ -312,29 +312,31 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                     print(f"[WARNING] Sample {i} didn't complete factcheck stage properly")
             else:
                 # STAGE 2: Scoring
-                print(f"  [STAGE 2] Processing scoring stage")
+                if i < 2:  # First couple samples
+                    print(f"  [STAGE 2] Processing scoring stage")
                 reward, obs, updated_meta = self._process_scoring_stage(
                     assistant_response, meta
                 )
-                print(f"  [STAGE 2] Final reward: {reward}")
+                if i < 2:  # First couple samples
+                    print(f"  [STAGE 2] Final reward: {reward}")
             
             rewards.append(reward)
             observations.append(obs)
             next_metadata.append(updated_meta)
-            
-            print(f"  Sample {i} completed with reward: {reward}")
+            if i < 2:  # First couple samples
+                print(f"  Sample {i} completed with reward: {reward}")
         
         rewards_tensor = torch.tensor(rewards, dtype=torch.float32)
         # Only terminate after scoring stage
         terminateds = torch.tensor([
             meta is None for meta in next_metadata
         ], dtype=torch.bool)
-        
+        '''
         print(f"\n[TWO-STAGE ENV] Batch summary:")
         print(f"  Rewards: {rewards}")
         print(f"  Terminated: {terminateds.tolist()}")
         print(f"  Non-zero rewards: {sum(1 for r in rewards if r != 0)}")
-        
+        '''
         return EnvironmentReturn(
             observations=observations,
             metadata=next_metadata,
@@ -344,56 +346,53 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         )
 
     def _process_factcheck_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
-        """Process fact-checking stage - simplified version without parsing."""
-
-        # Debug: Show response length and first part
-        print(f"[FACTCHECK STAGE] Raw response length: {len(response)}")
+        """Process fact-checking stage."""
         
-        # Truncate if too long (keep first 5000 chars)
-        max_factcheck_length = 5000
+        # Parse and store fact-check results
         parsed_response = parse_fact_checking_response(response)
-        print(f"[FACTCHECK STAGE] Parsed response length: {len(parsed_response)}")
-
-        if len(parsed_response) > max_factcheck_length:
-            truncated_response = parsed_response[:max_factcheck_length] + "\n[...truncated due to length]"
-            print(f"[FACTCHECK STAGE] Truncated response from {len(parsed_response)} to {len(truncated_response)} chars")
-        else:
-            truncated_response = parsed_response
-
-        # Store raw fact-check results and move to scoring stage  
+        
+        # Store fact-check results and prepare for scoring stage
         updated_metadata = metadata.copy()
         updated_metadata["factcheck_stage_complete"] = True
-        updated_metadata["factcheck_results"] = truncated_response  # Store raw response directly
+        updated_metadata["factcheck_results"] = parsed_response
         
-        print(f"[FACTCHECK STAGE] Completed successfully - stored raw response")
+        # IMPORTANT: Create the observation that will be used as the next prompt
+        # This should be the scoring stage prompt
+        scoring_prompt = format_scoring_stage_prompt(
+            metadata["context"],
+            metadata["response1"], 
+            metadata["response2"],
+            parsed_response
+        )
         
-        # No reward yet - waiting for scoring stage
+        # Return observation that becomes the next user message
         return 0.0, {
-            "role": "environment", 
-            "content": "Fact-checking stage completed. Proceeding to scoring stage."
+            "role": "user",  # Changed from "environment" to "user"
+            "content": scoring_prompt
         }, updated_metadata
 
 
 
     def _process_scoring_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
         """Process scoring stage with extensive debugging."""
-        
+        '''
         print(f"\n[SCORING STAGE DEBUG] Starting scoring stage")
         print(f"  Response length: {len(response)}")
-        print(f"  Response preview: {response[:200]}...")
+        print(f"  Response preview: {response}...")
         print(f"  Metadata num_responses: {metadata['num_responses']}")
         print(f"  Metadata helpfulness_1: {metadata.get('helpfulness_1')}")
         print(f"  Metadata helpfulness_2: {metadata.get('helpfulness_2')}")
         print(f"  Metadata preference_ranking: {metadata.get('preference_ranking')}")
-        
+        '''
         # Parse scoring response (still need this for reward calculation)
         is_valid, scores, ranking, error_msg = parse_scoring_response(
             response, metadata["num_responses"]
         )
-        
+        '''
         print(f"  Parse results: is_valid={is_valid}")
         print(f"  Extracted scores: {scores}")
         print(f"  Extracted ranking: {ranking}")
+        '''
         if error_msg:
             print(f"  Parse error: {error_msg}")
         
@@ -415,7 +414,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                     distance_1 = abs(score_1 - metadata["helpfulness_1"])
                     base_reward = -distance_1
                     reward_breakdown.append(f"single_score_distance: -{distance_1}")
-                    print(f"  Single response: predicted={score_1}, ground_truth={metadata['helpfulness_1']}, distance={distance_1}")
+                    #print(f"  Single response: predicted={score_1}, ground_truth={metadata['helpfulness_1']}, distance={distance_1}")
                 else:
                     print(f"  Single response: missing data - helpfulness_1={metadata.get('helpfulness_1')}, scores={scores}")
             
@@ -427,8 +426,8 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                     distance_2 = abs(score_2 - metadata["helpfulness_2"])
                     base_reward = -(distance_1 + distance_2)
                     reward_breakdown.append(f"score_distances: -{distance_1} + -{distance_2}")
-                    print(f"  Score 1: predicted={score_1}, ground_truth={metadata['helpfulness_1']}, distance={distance_1}")
-                    print(f"  Score 2: predicted={score_2}, ground_truth={metadata['helpfulness_2']}, distance={distance_2}")
+                    #print(f"  Score 1: predicted={score_1}, ground_truth={metadata['helpfulness_1']}, distance={distance_1}")
+                    #print(f"  Score 2: predicted={score_2}, ground_truth={metadata['helpfulness_2']}, distance={distance_2}")
                 else:
                     print(f"  Two responses: missing score data - helpfulness_1={metadata.get('helpfulness_1')}, helpfulness_2={metadata.get('helpfulness_2')}, scores={scores}")
                 
@@ -438,7 +437,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                         ranking_distance = abs(ranking_int - metadata["preference_ranking"])
                         base_reward -= ranking_distance
                         reward_breakdown.append(f"ranking_distance: -{ranking_distance}")
-                        print(f"  Ranking: predicted={ranking_int}, ground_truth={metadata['preference_ranking']}, distance={ranking_distance}")
+                        #print(f"  Ranking: predicted={ranking_int}, ground_truth={metadata['preference_ranking']}, distance={ranking_distance}")
                     except ValueError as e:
                         print(f"  Ranking parse error: {e}, ranking='{ranking}'")
                 else:
@@ -455,8 +454,8 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         # Final reward is just the base accuracy (no fact-checking bonus/penalty)
         final_reward = base_reward
         
-        print(f"  Reward breakdown: {', '.join(reward_breakdown)}")
-        print(f"  Final reward: {final_reward}")
+        #print(f"  Reward breakdown: {', '.join(reward_breakdown)}")
+        #print(f"  Final reward: {final_reward}")
         
         return float(final_reward), {
             "role": "environment",
@@ -509,7 +508,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
 
 
 # ========================= INTEGRATION UTILITIES =========================
-
+'''
 def create_factcheck_stage_data(context: str, response1: str, response2: Optional[str] = None) -> dict:
     """Create data for fact-checking stage."""
     prompt = format_factcheck_stage_prompt(context, response1, response2)
@@ -530,3 +529,4 @@ def create_scoring_stage_data(context: str, response1: str, response2: Optional[
         "stage": "scoring",
         "factcheck_results": factcheck_results
     }
+'''

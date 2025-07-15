@@ -38,7 +38,7 @@ tokenizer:
   chat_template: "default"
 
 
-two_stage_env:
+two_stage_genrm:
   format_penalty: -100
   factcheck_bonus_multiplier: 0.0
     

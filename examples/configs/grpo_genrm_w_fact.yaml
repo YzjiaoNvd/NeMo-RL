@@ -2,7 +2,7 @@
 grpo:
   num_prompts_per_step: 64
   num_generations_per_prompt: 8
-  max_rollout_turns: 1
+  max_rollout_turns: 2
   max_num_steps: 1000
   normalize_rewards: true
   use_leave_one_out_baseline: true
@@ -139,7 +139,7 @@ cluster:
   gpus_per_node: 8
   num_nodes: 1
 
-two_stage_env:
+two_stage_genrm:
   format_penalty: -100
   factcheck_bonus_multiplier: 0.0
    
