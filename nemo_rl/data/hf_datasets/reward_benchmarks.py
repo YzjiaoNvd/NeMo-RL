@@ -291,7 +291,7 @@ class RewardBench2Dataset:
 ######issue to be fixed: change the input file 
 class HelpSteer3LocalDataset(torch.utils.data.Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
-    def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data.jsonl", shuffle_seed: int = -1):
+    def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data_base.jsonl", shuffle_seed: int = -1):
         data = []
         with open(data_path, 'r') as f:
             for line in f:
