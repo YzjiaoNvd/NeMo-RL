@@ -286,9 +286,10 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         next_metadata = []
         
         for i, (conversation, meta) in enumerate(zip(message_log_batch, metadata)):
-            print(f"\n[SAMPLE {i}] Processing sample {i}")
-            print(f"  factcheck_stage_complete: {meta.get('factcheck_stage_complete', False)}")
-            print(f"  num_responses: {meta.get('num_responses')}")
+            if i < 2:  # First couple samples
+                print(f"\n[SAMPLE {i}] Processing sample {i}")
+                print(f"  factcheck_stage_complete: {meta.get('factcheck_stage_complete', False)}")
+                print(f"  Has ground truth: h1={meta.get('helpfulness_1')}, h2={meta.get('helpfulness_2')}, pref={meta.get('preference_ranking')}")
             
             # Extract assistant's response
             assistant_response = ""
@@ -301,13 +302,14 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             print(f"  Assistant response preview: {assistant_response[:100]}...")
             
             # Check which stage we're in
-            if not meta.get("factcheck_stage_complete", False):
+            if not meta.get("factcheck_stage_complete"):
                 # STAGE 1: Fact-checking
-                print(f"  [STAGE 1] Processing fact-checking stage")
                 reward, obs, updated_meta = self._process_factcheck_stage(
                     assistant_response, meta
                 )
-                print(f"  [STAGE 1] Reward: {reward} (should be 0.0)")
+                # CRITICAL: Ensure we move to next stage
+                if updated_meta and not updated_meta.get("factcheck_stage_complete"):
+                    print(f"[WARNING] Sample {i} didn't complete factcheck stage properly")
             else:
                 # STAGE 2: Scoring
                 print(f"  [STAGE 2] Processing scoring stage")
@@ -325,8 +327,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         rewards_tensor = torch.tensor(rewards, dtype=torch.float32)
         # Only terminate after scoring stage
         terminateds = torch.tensor([
-            meta is None  # Only terminate when metadata is None (after scoring stage)
-            for meta in next_metadata
+            meta is None for meta in next_metadata
         ], dtype=torch.bool)
         
         print(f"\n[TWO-STAGE ENV] Batch summary:")

@@ -44,18 +44,13 @@ def two_stage_genrm_data_processor(
     # Extract the original prompt content and parse it
     original_prompt = datum_dict.get("prompt", "")
     
-    # Extract the original prompt content and parse it
-    original_prompt = datum_dict.get("prompt", "")
-    
-    # FIXED: Extract metadata from the args field (the actual data structure)
-    args = datum_dict.get("args", {})
-    num_responses = args.get("num_responses", 2)
-    helpfulness_1 = args.get("helpfulness_1", None)
-    helpfulness_2 = args.get("helpfulness_2", None)
-    preference_ranking = args.get("preference_ranking", None)
-    context = args.get("context", None) 
-    response1 = args.get("response1", None) 
-    response2 = args.get("response2", None) 
+    num_responses = datum_dict.get("num_responses", 2)
+    helpfulness_1 = datum_dict.get("helpfulness_1", None)
+    helpfulness_2 = datum_dict.get("helpfulness_2", None)
+    preference_ranking = datum_dict.get("preference_ranking", None)
+    context = datum_dict.get("context", None) 
+    response1 = datum_dict.get("response1", None) 
+    response2 = datum_dict.get("response2", None) 
 
     # Stage 1: Create fact-checking prompt
     factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
