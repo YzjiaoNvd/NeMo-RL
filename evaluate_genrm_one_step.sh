@@ -14,7 +14,7 @@ CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo
 
 # SLURM Config
 ACCOUNT="llmservice_modelalignment_ppo"
-PARTITION="batch"
+PARTITION="batch,batch_short,interactive"
 TIME="01:00:00"
 NODES=1
 GPUS=8
