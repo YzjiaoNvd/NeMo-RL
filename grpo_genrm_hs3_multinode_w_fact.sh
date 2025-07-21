@@ -100,7 +100,7 @@ sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_ppo \
     --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_fact \
-    --partition=batch \
+    --partition=interactive \
     --time=4:00:00 \
     --gres=gpu:8 \
     --mem=0 \

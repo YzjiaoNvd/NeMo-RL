@@ -87,10 +87,15 @@ def genrm_eval_data_processor(
         "preference_ranking": datum_dict.get("preference"),
         "ground_truth": datum_dict.get("ground_truth"),
     }
-    
+            
+    for key in ["domain", "sample_id", "chosen_style_idx", "rejected_style_idx"]:
+        if key in datum_dict.keys():
+            metadata[key] = datum_dict.get(key)
+
     # Debug: Print extracted metadata
     if idx < 3:
         print(f"  Extracted metadata: {metadata}")
+
 
     return DatumSpec(
         message_log=message_log,

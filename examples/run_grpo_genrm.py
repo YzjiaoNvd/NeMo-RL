@@ -89,32 +89,6 @@ def helpsteer3_genrm_data_processor(
         task_name="genrm",
     )
 
-'''
-class HelpSteer3LocalDataset(Dataset):
-    """Dataset for loading HelpSteer3 data from local JSONL files."""
-    
-    def __init__(self, data_path: str, split: str = "train", shuffle_seed: int = -1):
-        self.data = []
-        with open(data_path, 'r') as f:
-            for line in f:
-                self.data.append(json.loads(line))
-
-        self.split = split
-
-        if shuffle_seed != -1:
-            rng = np.random.default_rng(shuffle_seed)
-            rng.shuffle(self.data)
-            print(f"Shuffled {split} dataset with {len(self.data)} samples using seed {shuffle_seed}")
-    
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, idx):
-        # Add task_name for compatibility with AllTaskProcessedDataset
-        item = self.data[idx].copy()
-        item["task_name"] = "genrm"
-        return item
-'''
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
     """Parse command line arguments."""

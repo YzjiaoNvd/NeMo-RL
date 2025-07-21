@@ -14,7 +14,7 @@ CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo
 
 # SLURM Config
 ACCOUNT="llmservice_modelalignment_ppo"
-PARTITION="batch"
+PARTITION="batch_short,interactive"
 TIME="01:00:00"
 NODES=1
 GPUS=8
@@ -46,7 +46,7 @@ MOUNTS="$GPFS:$GPFS,/lustre:/lustre" \
 sbatch \
     --nodes=$NODES \
     --account=$ACCOUNT \
-    --job-name=eval_step$STEP_NUM \
+    --job-name=1eval_step$STEP_NUM \
     --partition=$PARTITION \
     --time=$TIME \
     --gres=gpu:$GPUS \

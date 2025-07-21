@@ -197,10 +197,10 @@ def parse_fact_checking_response(response: str, num_responses: int = 2) -> str:
             content = blocks[response_num]
             structured_block = f"[Fact Checking for Response {response_num}]\n{content}\n[End of Fact Checking for Response {response_num}]"
             structured_parts.append(structured_block)
-        return "\n\n".join(structured_parts)
+        return True, "\n\n".join(structured_parts)
 
     except Exception as e:
-        return "No valid fact checking results."
+        return False, "No valid fact checking results."
 
 def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, list, Optional[str], str]:
     try:
@@ -292,20 +292,20 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                 print(f"  Has ground truth: h1={meta.get('helpfulness_1')}, h2={meta.get('helpfulness_2')}, pref={meta.get('preference_ranking')}")
             
             # Extract assistant's response
-            assistant_response = ""
+            rm_response = ""
             for msg in reversed(conversation):
                 if msg["role"] == "assistant":
-                    assistant_response = msg["content"]
+                    rm_response = msg["content"]
                     break
             if i < 2:  # First couple samples
-                print(f"  Assistant response length: {len(assistant_response)}")
-                print(f"  Assistant response preview: {assistant_response[:100]}...")
+                print(f"  Assistant response length: {len(rm_response)}")
+                print(f"  Assistant response preview: {rm_response[:100]}...")
             
             # Check which stage we're in
             if not meta.get("factcheck_stage_complete"):
                 # STAGE 1: Fact-checking
                 reward, obs, updated_meta = self._process_factcheck_stage(
-                    assistant_response, meta
+                    rm_response, meta
                 )
                 # CRITICAL: Ensure we move to next stage
                 if updated_meta and not updated_meta.get("factcheck_stage_complete"):
@@ -315,7 +315,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
                 if i < 2:  # First couple samples
                     print(f"  [STAGE 2] Processing scoring stage")
                 reward, obs, updated_meta = self._process_scoring_stage(
-                    assistant_response, meta
+                    rm_response, meta
                 )
                 if i < 2:  # First couple samples
                     print(f"  [STAGE 2] Final reward: {reward}")
@@ -337,10 +337,21 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         print(f"  Terminated: {terminateds.tolist()}")
         print(f"  Non-zero rewards: {sum(1 for r in rewards if r != 0)}")
         '''
+
+        # Add stop strings for each stage
+        next_stop_strings = []
+        for meta in next_metadata:
+            if meta and not meta.get("factcheck_stage_complete"):
+                # Fact-checking stage - stop after fact-check output
+                next_stop_strings.append(["[End of Fact Checking for Response 2]"])
+            else:
+                # Scoring stage - stop after ranking score
+                next_stop_strings.append(["[The End of Ranking Score]"])
+        
         return EnvironmentReturn(
             observations=observations,
             metadata=next_metadata,
-            next_stop_strings=[None] * len(message_log_batch),
+            next_stop_strings=next_stop_strings,  # Use stage-specific stop strings
             rewards=rewards_tensor,
             terminateds=terminateds,
         )
@@ -349,7 +360,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         """Process fact-checking stage."""
         
         # Parse and store fact-check results
-        parsed_response = parse_fact_checking_response(response)
+        is_parsed, parsed_response = parse_fact_checking_response(response)
         
         # Store fact-check results and prepare for scoring stage
         updated_metadata = metadata.copy()
@@ -365,9 +376,11 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             parsed_response
         )
         
+        reward = 1.0 if is_parsed else 0.0
+
         # Return observation that becomes the next user message
-        return 0.0, {
-            "role": "user",  # Changed from "environment" to "user"
+        return reward, {
+            "role": "environment",  # Should be "environment", not "user"
             "content": scoring_prompt
         }, updated_metadata
 
@@ -506,27 +519,3 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         """Clean up resources."""
         pass
 
-
-# ========================= INTEGRATION UTILITIES =========================
-'''
-def create_factcheck_stage_data(context: str, response1: str, response2: Optional[str] = None) -> dict:
-    """Create data for fact-checking stage."""
-    prompt = format_factcheck_stage_prompt(context, response1, response2)
-    
-    return {
-        "prompt": prompt,
-        "num_responses": 2 if response2 else 1,
-        "stage": "factcheck"
-    }
-
-def create_scoring_stage_data(context: str, response1: str, response2: Optional[str], factcheck_results: str) -> dict:
-    """Create data for scoring stage."""
-    prompt = format_scoring_stage_prompt(context, response1, response2, factcheck_results)
-    
-    return {
-        "prompt": prompt, 
-        "num_responses": 2 if response2 else 1,
-        "stage": "scoring",
-        "factcheck_results": factcheck_results
-    }
-'''

@@ -159,8 +159,8 @@ def setup_two_stage_data(tokenizer, data_config, env_configs):
     # Load datasets
     train_data_path = data_config.get("train_data_path")
     val_data_path = data_config.get("val_data_path")
-    train_dataset = HelpSteer3LocalDataset(train_data_path, task_name="two_stage_genrm", shuffle_seed=data_config.get("shuffle_seed_for_training"))
-    val_dataset = HelpSteer3LocalDataset(val_data_path, task_name="two_stage_genrm") if val_data_path else None
+    train_dataset = HelpSteer3LocalDataset(train_data_path, task_name="two_stage_genrm", shuffle_seed=data_config.get("shuffle_seed_for_training"), split='train')
+    val_dataset = HelpSteer3LocalDataset(val_data_path, task_name="two_stage_genrm", split='validation') if val_data_path else None
     
     # Setup task data processors
     task_data_processors = defaultdict(lambda: (two_stage_task_spec, two_stage_genrm_data_processor))

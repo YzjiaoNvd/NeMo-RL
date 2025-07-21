@@ -24,7 +24,6 @@ def calculate_accuracy(data: list[dict]):
             # 0 if predicted_ranking <= 3 else 1
             if predicted_ranking is None:
                 mapped_prediction = random.choice([0, 1])
-            
             else:
                 mapped_prediction = 0 if predicted_ranking <= 3 else 1
                             
@@ -89,7 +88,7 @@ def calculate_step_accuracies(directory_path: str, dataset: str) -> dict:
                     accuracy = 0.0
                     if dataset == "rewardbench2":
                         chunk_size = 3
-                    elif dataset == "rmbench" or dataset == "judgebench":
+                    elif dataset == "judgebench":
                         chunk_size = 2
                     else:
                         chunk_size = 1
