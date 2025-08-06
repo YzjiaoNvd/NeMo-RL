@@ -57,6 +57,12 @@ def generate_responses(
 ) -> tuple[BatchedDataDict[DatumSpec], list[torch.Tensor], dict[str, float | int]]:
     """Generate responses from policy using synchronous generation."""
     # Add stop_strings to generation_input_data if present in the batch
+    input_text = tokenizer.batch_decode(generation_input_data["input_ids"])
+    print("input_text")
+    print(input_text[:1])
+    print(input_text[1:2])
+    print()
+
     if "stop_strings" in batch:
         generation_input_data["stop_strings"] = batch["stop_strings"]
     else:
@@ -127,6 +133,10 @@ async def generate_responses_async(
         # Ensure the key exists even if it's None, matching GenerationDatumSpec
         generation_input_data["stop_strings"] = [None] * len(input_lengths)
 
+    input_text = tokenizer.batch_decode(generation_input_data["input_ids"], skip_special_tokens=True)
+    print("input_text")
+    print(input_text)
+
     # Check if this is vLLM with async_engine enabled
     use_async_generation = (
         hasattr(policy_generation, "cfg")
@@ -134,7 +144,6 @@ async def generate_responses_async(
         and policy_generation.cfg["vllm_cfg"]["async_engine"]
         and hasattr(policy_generation, "generate_async")
     )
-
     assert use_async_generation, (
         "Async generation is not enabled. Please enable async generation by setting async_engine=True in the vllm_cfg section of the policy config."
     )
@@ -365,6 +374,8 @@ def run_multi_turn_rollout(
                 pad_value_dict={"token_ids": tokenizer.pad_token_id},
             )
         )
+        #print("active_flat_messages")
+        #print(active_flat_messages)
 
         # Extract input_ids and lengths from the flat messages
         active_input_ids = active_flat_messages["token_ids"]

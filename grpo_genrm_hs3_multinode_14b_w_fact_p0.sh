@@ -6,7 +6,6 @@ GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/u
 CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
 export HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache
 
-
 # Number of nodes for the job
 NUM_ACTOR_NODES=8
 
@@ -21,16 +20,16 @@ ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
 project_name="yizhu_rlhf"
-lr=2e-6
+lr=2e-8
 temp=1
 grpo_bs=256
 prompts_per_step=128
 rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
 kl=0.001
-reward="r1"
+reward="r0"
 data_version="_base" # 
 
-NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}"
+NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}_fact"
 
 RESULTS_DIR="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
 mkdir -p $RESULTS_DIR
@@ -43,14 +42,14 @@ PPO_OUTFILE="${ACTOR_LOG_DIR}/%j_%t.log"
 
 
 # Construct the command to run
-COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm.py \
+COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
     ++logger.wandb.name=${NAME} \
     ++logger.wandb_enabled=True \
     logger.wandb.project=${project_name} \
     ++checkpointing.checkpoint_dir=${RESULTS_DIR} \
     ++cluster.num_nodes=${NUM_ACTOR_NODES} \
     policy.dtensor_cfg.enabled=${FSDP2} \
-    policy.dtensor_cfg.tensor_parallel_size=1 \
+    policy.dtensor_cfg.sequence_parallel=True \
     policy.dtensor_cfg.activation_checkpointing=${ACT_CKPT} \
     policy.dtensor_cfg.cpu_offload=${CPU_OFFLOAD} \
     ++policy.dtensor_cfg.context_parallel_size=1 \
@@ -76,7 +75,7 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm.py \
     policy.train_micro_batch_size=1 \
     policy.generation_batch_size=1 \
     policy.logprob_batch_size=1 \
-    policy.max_total_sequence_length=6666 \
+    policy.max_total_sequence_length=7000 \
     policy.optimizer.kwargs.lr=${lr} \
     policy.optimizer.kwargs.weight_decay=0 \
     policy.generation.temperature=${temp} \
@@ -94,7 +93,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_sft \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version} \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${lr}_${reward}${data_version}_w_fact \
     --partition=batch_block1 \
     --time=4:00:00 \
     --gres=gpu:8 \

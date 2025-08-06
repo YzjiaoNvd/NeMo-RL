@@ -8,13 +8,13 @@ RESULTS_DIR="${3:-$(dirname "$STEP_DIR")/outputs}"
 DATASET="${4:-"judgebench"}"
 
 # Config
-GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
-# CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
-CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
+GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
+# CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
+CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
 
 # SLURM Config
-ACCOUNT="llmservice_modelalignment_ppo"
-PARTITION="batch_short,interactive"
+ACCOUNT="llmservice_modelalignment_sft"
+PARTITION="batch_block1"
 TIME="01:00:00"
 NODES=1
 GPUS=8
@@ -39,14 +39,14 @@ fi
 # Set up environment and submit job using the new format
 cd "$GPFS"
 
-HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache \
+HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache \
 COMMAND="uv run python examples/run_eval_genrm_w_fact.py --dataset=${DATASET} ++generation.model_name=${STEP_DIR} ++eval.output_file=${OUTPUT} ++eval.batch_size=1024 ++generation.vllm_cfg.tensor_parallel_size=1 ++generation.vllm_cfg.gpu_memory_utilization=0.7 ++cluster.gpus_per_node=${GPUS} ++cluster.num_nodes=1" \
 CONTAINER="$CONTAINER" \
 MOUNTS="$GPFS:$GPFS,/lustre:/lustre" \
 sbatch \
     --nodes=$NODES \
     --account=$ACCOUNT \
-    --job-name=1eval_step$STEP_NUM \
+    --job-name=eval_fact_step${STEP_NUM}_${DATASET} \
     --partition=$PARTITION \
     --time=$TIME \
     --gres=gpu:$GPUS \

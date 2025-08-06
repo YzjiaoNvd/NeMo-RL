@@ -27,7 +27,7 @@ from nemo_rl.models.generation import configure_generation_config
 from nemo_rl.utils.config import load_config, parse_hydra_overrides
 
 # Import two-stage environment components
-from nemo_rl.environments.genrm_environment_w_fact import (
+from nemo_rl.environments.genrm_environment_w_fact1 import (
     format_factcheck_stage_prompt,
     format_scoring_stage_prompt,
     parse_scoring_response,
@@ -238,6 +238,8 @@ def run_two_stage_evaluation(vllm_generation, dataloader, tokenizer, output_file
             two_stage_prompts = []
             for factcheck_prompt, updated_factcheck_response, scoring_prompt in zip(factcheck_prompts, updated_factcheck_responses, scoring_prompts):
                 two_stage_prompts.append(factcheck_prompt + updated_factcheck_response + scoring_prompt)
+            print("two_stage_prompts")
+            print(two_stage_prompts[:1])
             stage2_inputs = BatchedDataDict({"prompts": two_stage_prompts})
             stage2_outputs = vllm_generation.generate_text(stage2_inputs)
             scoring_responses = stage2_outputs.get("texts", [""] * len(scoring_prompts))

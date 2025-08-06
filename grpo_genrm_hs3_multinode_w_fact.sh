@@ -2,9 +2,9 @@
 
 set -x
 
-GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
-CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
-export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
+GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
+CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
+export HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache
 
 
 # Number of nodes for the job
@@ -35,7 +35,7 @@ data_version="_base"
 
 NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}_fact"
 
-RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
+RESULTS_DIR="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
 mkdir -p $RESULTS_DIR
 
 ACTOR_LOG_DIR="${RESULTS_DIR}/logs"
@@ -54,17 +54,17 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
     ++cluster.num_nodes=${NUM_ACTOR_NODES} \
     policy.dtensor_cfg.enabled=${FSDP2} \
     policy.dtensor_cfg.tensor_parallel_size=1 \
-    ++policy.dtensor_cfg.context_parallel_size=1 \
     policy.dtensor_cfg.activation_checkpointing=${ACT_CKPT} \
     policy.dtensor_cfg.cpu_offload=${CPU_OFFLOAD} \
+    ++policy.dtensor_cfg.context_parallel_size=1 \
     ++cluster.gpus_per_node=8 \
     grpo.num_prompts_per_step=${prompts_per_step} \
     grpo.num_generations_per_prompt=${rollouts_per_prompt} \
     grpo.val_period=5 \
     grpo.max_val_samples=16 \
     grpo.val_batch_size=16 \
-    data.train_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/train_data${data_version}.jsonl" \
-    data.val_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data${data_version}.jsonl" \
+    data.train_data_path="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/train_data${data_version}.jsonl" \
+    data.val_data_path="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/val_data${data_version}.jsonl" \
     ++data.shuffle_seed_for_training=-1 \
     loss_fn.reference_policy_kl_penalty=${kl} \
     loss_fn.use_on_policy_kl_approximation=False \
@@ -98,10 +98,10 @@ CONTAINER="${CONTAINER}" \
 MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
-    --account=llmservice_modelalignment_ppo \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_fact \
-    --partition=interactive \
-    --time=4:00:00 \
+    --account=llmservice_modelalignment_sft \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_fact1 \
+    --partition=batch_block1 \
+    --time=2:00:00 \
     --gres=gpu:8 \
     --mem=0 \
     --dependency=singleton \

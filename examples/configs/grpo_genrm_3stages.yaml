@@ -111,7 +111,7 @@ data:
   prompt_file: null
   system_prompt_file: null
   dataset_name: "HelpSteer3-GenRM-3Stage"
-  shuffle_seed_for_training: 0  # -1 for not shuffling
+  shuffle_seed_for_training: -1  # -1 for not shuffling
 
 env:
   three_stage_genrm:

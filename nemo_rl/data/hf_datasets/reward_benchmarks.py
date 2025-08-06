@@ -344,7 +344,7 @@ class RewardBench2Dataset:
 ######issue to be fixed: change the input file 
 class HelpSteer3LocalDataset(torch.utils.data.Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
-    def __init__(self, data_path: str="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data_base.jsonl", task_name: str="genrm", shuffle_seed: int = -1, split: str="validation"):
+    def __init__(self, data_path: str="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/val_data_base.jsonl", task_name: str="genrm", shuffle_seed: int = -1, split: str="validation", max_number: int=-1):
         data = []
         with open(data_path, 'r') as f:
             for line in f:
@@ -389,6 +389,9 @@ class HelpSteer3LocalDataset(torch.utils.data.Dataset):
             rng.shuffle(data)
             print(f"Shuffled the dataset with {len(data)} samples using seed {shuffle_seed}")
 
+        if max_number != -1:
+            data = data[:max_number]
+            
         self.data = Dataset.from_list(data)
         self.formatted_ds = self.data
         self.task_name = task_name

@@ -23,7 +23,7 @@ from nemo_rl.utils.config import load_config, parse_hydra_overrides
 from nemo_rl.utils.logger import get_next_experiment_dir
 
 # Import our two-stage components
-from nemo_rl.environments.genrm_environment_w_fact import (
+from nemo_rl.environments.genrm_environment_w_fact1 import (
     TwoStageFactCheckEnvironment, 
     TwoStageMetadata,
     format_factcheck_stage_prompt,
@@ -70,10 +70,8 @@ def two_stage_genrm_data_processor(
         add_generation_prompt=True,
         add_special_tokens=False,
     )
-
     user_message["token_ids"] = tokenizer(message, return_tensors="pt")["input_ids"][0]
     user_message["content"] = message  
-
     message_log.append(user_message)
     
     # Calculate total length

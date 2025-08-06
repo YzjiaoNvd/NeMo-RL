@@ -15,7 +15,7 @@ CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_
 # SLURM Config
 ACCOUNT="llmservice_modelalignment_sft"
 PARTITION="batch_block1"
-TIME="04:00:00"
+TIME="01:00:00"
 NODES=1
 GPUS=8
 
@@ -40,13 +40,13 @@ fi
 cd "$GPFS"
 
 HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache \
-COMMAND="uv run python examples/run_eval_genrm.py --dataset=${DATASET} ++generation.model_name=${STEP_DIR} ++eval.output_file=${OUTPUT} ++eval.batch_size=1024 ++generation.vllm_cfg.tensor_parallel_size=1 ++generation.vllm_cfg.gpu_memory_utilization=0.7 ++cluster.gpus_per_node=${GPUS} ++cluster.num_nodes=${NODES}" \
+COMMAND="uv run python examples/run_eval_genrm_w_fact1.py --dataset=${DATASET} ++generation.model_name=${STEP_DIR} ++eval.output_file=${OUTPUT} ++eval.batch_size=1024 ++generation.vllm_cfg.tensor_parallel_size=1 ++generation.vllm_cfg.gpu_memory_utilization=0.7 ++cluster.gpus_per_node=${GPUS} ++cluster.num_nodes=1" \
 CONTAINER="$CONTAINER" \
 MOUNTS="$GPFS:$GPFS,/lustre:/lustre" \
 sbatch \
     --nodes=$NODES \
     --account=$ACCOUNT \
-    --job-name=eval_step${STEP_NUM}_${DATASET}1 \
+    --job-name=eval_fact_step${STEP_NUM}_${DATASET}1 \
     --partition=$PARTITION \
     --time=$TIME \
     --gres=gpu:$GPUS \
@@ -55,3 +55,6 @@ sbatch \
     ray.sub
 
 echo "📤 Submitted job for step_$STEP_NUM"
+
+
+

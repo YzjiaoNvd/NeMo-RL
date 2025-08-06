@@ -537,6 +537,7 @@ def grpo_train(
                 repeated_batch: BatchedDataDict[DatumSpec] = batch.repeat_interleave(
                     master_config["grpo"]["num_generations_per_prompt"]
                 )
+                
                 # Convert LLMMessageLogType to FlatMessagesType for generation
                 batched_flat, input_lengths = batched_message_log_to_flat_message(
                     repeated_batch["message_log"],
@@ -557,6 +558,8 @@ def grpo_train(
 
             with timer.time("generation"):
                 # Use async rollouts if vLLM async engine is enabled
+                #print("Before:")
+                #print(repeated_batch)
                 if _should_use_async_rollouts(master_config):
                     (
                         repeated_batch,
@@ -572,7 +575,11 @@ def grpo_train(
                         max_rollout_turns=master_config["grpo"]["max_rollout_turns"],
                         greedy=False,
                     )
+                    #print("After:")
+                    #print(repeated_batch)
                 else:
+                    #print("Before:")
+                    #print(repeated_batch)
                     repeated_batch, rollout_metrics = run_multi_turn_rollout(
                         policy_generation=policy_generation,
                         input_batch=repeated_batch,
@@ -584,6 +591,8 @@ def grpo_train(
                         max_rollout_turns=master_config["grpo"]["max_rollout_turns"],
                         greedy=False,
                     )
+                    #print("After:")
+                    #print(repeated_batch)
                 policy_generation.finish_generation()
 
             # Calculate rewards & advantages

@@ -2,9 +2,9 @@
 
 set -x
 
-GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
-CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
-export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
+GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
+CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
+export HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache
 
 
 # Number of nodes for the job
@@ -12,7 +12,7 @@ NUM_ACTOR_NODES=8
 
 # Model and training configuration
 FSDP2=True
-MODEL="Qwen/Qwen3-14B"
+MODEL="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/1grpo_hs3_16K_step240_clip_max_0.28_qwen3_14b_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_64_num_prompts_128_r0_base/HF/step_45"
 MODEL_NAME="qwen3_14b"
 #MODEL="Qwen/Qwen2.5-14B-Instruct"
 #MODEL_NAME="qwen25_14b"
@@ -32,7 +32,7 @@ data_version="_base" #
 
 NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}_3stages"
 
-RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
+RESULTS_DIR="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
 mkdir -p $RESULTS_DIR
 
 ACTOR_LOG_DIR="${RESULTS_DIR}/logs"
@@ -54,6 +54,8 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_3stages.py 
     policy.dtensor_cfg.activation_checkpointing=${ACT_CKPT} \
     policy.dtensor_cfg.cpu_offload=${CPU_OFFLOAD} \
     ++policy.dtensor_cfg.context_parallel_size=1 \
+    ++policy.dtensor_cfg.context_parallel_size=1 \
+    ++policy.tokenizer.name="Qwen/Qwen3-14B" \
     ++cluster.gpus_per_node=8 \
     grpo.num_prompts_per_step=${prompts_per_step} \
     grpo.num_generations_per_prompt=${rollouts_per_prompt} \
@@ -61,8 +63,8 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_3stages.py 
     grpo.val_period=5 \
     grpo.max_val_samples=16 \
     grpo.val_batch_size=16 \
-    data.train_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/train_data${data_version}.jsonl" \
-    data.val_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data${data_version}.jsonl" \
+    data.train_data_path="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/train_data${data_version}.jsonl" \
+    data.val_data_path="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/val_data${data_version}.jsonl" \
     loss_fn.reference_policy_kl_penalty=${kl} \
     loss_fn.use_on_policy_kl_approximation=False \
     loss_fn.use_importance_sampling_correction=False \
@@ -81,7 +83,7 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_3stages.py 
     policy.optimizer.kwargs.lr=${lr} \
     policy.optimizer.kwargs.weight_decay=0 \
     policy.generation.temperature=${temp} \
-    policy.generation.vllm_cfg.gpu_memory_utilization=0.8 \
+    policy.generation.vllm_cfg.gpu_memory_utilization=0.9 \
     data.dataset_name="hs3" \
     ++env.three_stage_genrm.reward_design=${reward} "
 
@@ -95,7 +97,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_ppo \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_3stages \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_3stages1 \
     --partition=batch \
     --time=4:00:00 \
     --gres=gpu:8 \

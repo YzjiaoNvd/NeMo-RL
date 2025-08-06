@@ -8,12 +8,12 @@ THRESHOLD="${2:-0}"
 OUTPUT_BASE_DIR="${3:-${CHECKPOINT_DIR}/HF}"
 
 # Container configuration
-GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
-CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/nemorl/containers/anyscale+ray+2.43.0-py312-cu125_uv.sqsh"
+GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
+CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nexus-team+nemo-rl+nemo-rl-20250725-pjin-dev.sqsh"
 
 # SLURM configuration
-ACCOUNT="llmservice_modelalignment_ppo"
-PARTITION="batch,batch_short,interactive"
+ACCOUNT="llmservice_modelalignment_sft"
+PARTITION="batch_block1"
 TIME_LIMIT="01:00:00"
 NODES=1
 CPUS_PER_TASK=8
@@ -69,13 +69,13 @@ submit_conversion_job() {
 #SBATCH -o $log_file
 #SBATCH -e $err_file
 
-export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
+export HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache
 
 srun --container-image="$CONTAINER" $mounts bash -c '
     # Enable error-exit and execution tracing inside the container
     set -e
     set -x
-
+    
     # Change to the NeMo-RL directory (this is crucial!)
     cd "'"$GPFS"'" \
     && ulimit -c 0 \

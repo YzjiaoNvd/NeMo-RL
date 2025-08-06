@@ -15,51 +15,45 @@ from nemo_rl.environments.interfaces import (
 )
 
 # ========================= STAGE 1: FACT-CHECKING =========================
+FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Your task is to evaluate the factual accuracy of two responses by identifying and verifying specific factual claims.
 
-'''
-FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and make your answer as brief as possible. 
-
-**Task:** Identify any factual errors and provide corrections when you know the accurate information.
-
-**Context:** 
-{context}
-
-**Responses:**
-{responses}
-
-**Output Format:**
-[Fact Checking for Response 1]
-- Factual Errors: [List specific factual errors, or "None identified"]
-- Corrections: [Provide correct information if you know it, or "Unknown"]
-[End of Fact Checking for Response 1]
-
-[Fact Checking for Response 2] 
-- Factual Errors: [List specific factual errors, or "None identified"]
-- Corrections: [Provide correct information if you know it, or "Unknown"]
-[End of Fact Checking for Response 2]"""
-'''
-
-FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and make your answer as brief as possible. 
-
-**Task:** Identify any factual errors and provide corrections when you know the accurate information.
+**Instructions:**
+1. Extract ONLY verifiable factual claims (dates, numbers, names, locations, specific events, scientific facts)
+2. Do NOT include opinions, subjective statements, or general knowledge
+3. Categorize each claim using these definitions:
+   - **Correct**: The claim is factually accurate
+   - **Wrong**: The claim contains factual errors (provide the correct information)
+   - **Unknown**: Cannot be verified with available knowledge
 
 **Context:** 
 {context}
 
-**Responses:**
+**Responses to Analyze:**
 {responses}
 
-**Output Format:**
+**Required Output Format:**
+
 [Fact Checking for Response 1]
-- Factual Errors: [List all factual errors (the spans from the original model responses), or "None identified"]
-- Corrections: [Provide correct information if you know it, or "Unknown"]
+(1) Factual Claim: [exact text from response] | Status: [Correct/Wrong/Unknown] | Correction: [provide accurate information if wrong]
+[Continue for all factual claims found]
 [End of Fact Checking for Response 1]
 
-[Fact Checking for Response 2] 
-- Factual Errors: [List all factual errors (the spans from the original model responses), or "None identified"]
-- Corrections: [Provide correct information if you know it, or "Unknown"]
-[End of Fact Checking for Response 2]"""
+[Fact Checking for Response 2]
+(1) Factual Claim: [exact text from response] | Status: [Correct/Wrong/Unknown] | Correction: [provide accurate information if wrong]
+[Continue for all factual claims found]
+[End of Fact Checking for Response 2]
 
+**Example:**
+[Fact Checking for Response 1]
+(1) Factual Claim: 1990 | Status: Correct
+(2) Factual Claim: the capital of China is Shanghai | Status: Wrong | Correction: the capital of China is Beijing
+[End of Fact Checking for Response 1]
+
+[Fact Checking for Response 2]
+(1) Factual Claim: the capital of China is Beijing | Status: Correct
+[End of Fact Checking for Response 2]
+"""
+  
 
   
 

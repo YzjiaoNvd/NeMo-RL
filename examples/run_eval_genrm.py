@@ -59,25 +59,31 @@ def genrm_eval_data_processor(
             if key in datum_dict:
                 value = datum_dict[key]
                 if isinstance(value, str) and len(value) > 100:
-                    print(f"  {key}: {value[:100]}...")
+                    print(f"  {key}: {value}...")
                 else:
                     print(f"  {key}: {value}")
     
-    # The datum_dict already contains the formatted prompt from format_judgebench_example
+        # The datum_dict already contains the formatted prompt from format_judgebench_example
     prompt = datum_dict.get("prompt", "")
     
-    # Tokenize the prompt to get token_ids
-    tokenized = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_seq_length)
-    token_ids = tokenized["input_ids"][0]
+    message_log = []
+    user_message = {
+        "role": "user",
+        "content": prompt,
+    }
+
+    message = tokenizer.apply_chat_template(  # type: ignore
+        [user_message],
+        tokenize=False,
+        add_generation_prompt=True,
+        add_special_tokens=False,
+    )
+
+    user_message["token_ids"] = tokenizer(message, return_tensors="pt")["input_ids"][0]
+    user_message["content"] = message  
+    token_length = len(user_message["token_ids"])
+    message_log.append(user_message)
     
-    # Create message log with tokenized content
-    message_log = [
-        {
-            "role": "user",
-            "content": prompt,
-            "token_ids": token_ids,
-        }
-    ]
     
     # Extract metadata - make sure we're getting the actual values
     metadata = {
@@ -86,6 +92,9 @@ def genrm_eval_data_processor(
         "helpfulness_2": datum_dict.get("label_2"),
         "preference_ranking": datum_dict.get("preference"),
         "ground_truth": datum_dict.get("ground_truth"),
+        "context": datum_dict.get("context", ""),
+        "response1": datum_dict.get("response1", ""),
+        "response2": datum_dict.get("response2", ""),
     }
             
     for key in ["domain", "sample_id", "chosen_style_idx", "rejected_style_idx"]:
@@ -93,13 +102,13 @@ def genrm_eval_data_processor(
             metadata[key] = datum_dict.get(key)
 
     # Debug: Print extracted metadata
-    if idx < 3:
+    if idx < 1:
         print(f"  Extracted metadata: {metadata}")
 
 
     return DatumSpec(
         message_log=message_log,
-        length=len(token_ids),
+        length=token_length,
         extra_env_info=metadata,
         loss_multiplier=1.0,
         idx=idx,
@@ -115,7 +124,7 @@ def parse_args():
     parser.add_argument(
         "--dataset", 
         type=str, 
-        choices=["judgebench", "rmbench", "rewardbench2", "hs3local"],
+        choices=["judgebench", "rmbench", "rewardbench2", "hs3local", "hs3train"],
         default=None,
         help="Dataset to evaluate on (overrides config)"
     )
@@ -137,6 +146,9 @@ def setup_data(tokenizer, data_config, dataset_name):
         dataset_loader = RewardBench2Dataset()
     elif dataset_name == "hs3local":
         dataset_loader = HelpSteer3LocalDataset()
+    elif dataset_name == "hs3train":
+        train_data_path = '/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/train_data_base.jsonl'
+        dataset_loader = HelpSteer3LocalDataset(train_data_path, split='train', max_number=30000)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
     
@@ -148,6 +160,7 @@ def setup_data(tokenizer, data_config, dataset_name):
     print(f"  ✓ Loaded {len(test_dataset)} examples")
     
     # Debug: Print first example from the dataset
+    '''
     if len(test_dataset) > 0:
         print("\n[DEBUG] First example from dataset:")
         first_example = test_dataset[0]
@@ -157,7 +170,8 @@ def setup_data(tokenizer, data_config, dataset_name):
                 print(f"  {key}: {value[:200]}...")
             else:
                 print(f"  {key}: {value}")
-    
+    '''
+
     # Create task spec
     eval_task_spec = TaskDataSpec(
         task_name="genrm_eval",
@@ -209,6 +223,7 @@ def evaluate_genrm(vllm_generation, dataloader, output_file):
     
     print("\n▶ Running evaluation...")
     for batch_idx, batch in enumerate(tqdm(dataloader)):
+        '''
         # Debug first batch
         if batch_idx == 0:
             print(f"\n[DEBUG] First batch structure:")
@@ -217,27 +232,23 @@ def evaluate_genrm(vllm_generation, dataloader, output_file):
             if len(batch['message_log']) > 0:
                 print(f"  First message_log structure: {[msg['role'] for msg in batch['message_log'][0]]}")
                 print(f"  First metadata: {batch['extra_env_info'][0]}")
-        
-        # Generate responses
+        '''
+
         prompts = []
         for message_log in batch["message_log"]:
             # Extract just the content from the user message
             if message_log and len(message_log) > 0 and message_log[0]["role"] == "user":
                 content = message_log[0]["content"]
                 prompts.append(content)
-                
-                # Debug: Print first prompt
-                if batch_idx == 0 and len(prompts) == 1:
-                    print(f"\n[DEBUG] First prompt (truncated): {content[:1000]}...")
             else:
                 prompts.append("")
                 print(f"[WARNING] Empty or invalid message_log structure")
         
         # Create generation input
         inputs = BatchedDataDict({"prompts": prompts})
-        
+        print(prompts[:1])
         # Generate using vLLM
-        try:
+        try: 
             outputs = vllm_generation.generate_text(inputs)
             generated_texts = outputs.get("texts", [""] * len(prompts))
             

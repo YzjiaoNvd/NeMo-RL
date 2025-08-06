@@ -25,6 +25,7 @@ ACTOR_ENVIRONMENT_REGISTRY: dict[str, str] = {
     "nemo_rl.environments.games.sliding_puzzle.SlidingPuzzleEnv": PY_EXECUTABLES.SYSTEM,
     "nemo_rl.environments.genrm_environment.GenRMEnvironment": PY_EXECUTABLES.SYSTEM,
     "nemo_rl.environments.genrm_environment_w_fact.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
+    "nemo_rl.environments.genrm_environment_w_fact1.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
     "nemo_rl.environments.genrm_environment_3stages.ThreeStageGenRMEnvironment": PY_EXECUTABLES.SYSTEM,
 }
 

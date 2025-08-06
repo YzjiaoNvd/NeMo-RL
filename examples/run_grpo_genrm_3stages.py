@@ -1,4 +1,4 @@
-# Three-Stage GenRM Training Script
+# Three-Stage GenRM Training Script - Modified to load Stage 1 results
 import argparse
 import os
 import json
@@ -26,19 +26,69 @@ from nemo_rl.utils.logger import get_next_experiment_dir
 from nemo_rl.environments.genrm_environment_3stages import (
     ThreeStageGenRMEnvironment,
     ThreeStageMetadata,
-    format_vanilla_genrm_prompt,
+    format_factcheck_prompt,
+    format_vanilla_genrm_prompt
 )
 
-# ========================= DATA PROCESSOR =========================
+# ========================= STAGE 1 RESULTS LOADER =========================
 
-def three_stage_genrm_data_processor(
+class Stage1ResultsDataset(torch.utils.data.Dataset):
+    """Dataset that loads stage 1 results from JSON file."""
+    
+    def __init__(self, stage1_results_path: str, task_name: str = "three_stage_genrm"):
+        self.data = []
+        self.task_name = task_name
+        
+        print(f"Loading stage 1 results from: {stage1_results_path}")
+        with open(stage1_results_path, 'r') as f:
+            stage1_results = json.load(f)
+        
+        # Convert stage 1 results to dataset format
+        for result in stage1_results:
+            if "predicted_scores" in result and "predicted_ranking" in result:
+                metadata = result["metadata"]
+                
+                # Create dataset entry with stage 1 results embedded
+                entry = {
+                    "context": metadata["context"],
+                    "response1": metadata["response1"], 
+                    "response2": metadata["response2"],
+                    "num_responses": metadata.get("num_responses", 2),
+                    "label_1": metadata.get("helpfulness_1"),
+                    "label_2": metadata.get("helpfulness_2"),
+                    "preference_ranking": metadata.get("preference_ranking"),
+                    
+                    # Stage 1 results
+                    "vanilla_scores": result["predicted_scores"],
+                    "vanilla_ranking": result["predicted_ranking"],
+                    "vanilla_response": result["prediction"],
+                    
+                    "task_name": task_name
+                }
+
+                self.data.append(entry)
+        
+        print(f"Loaded {len(self.data)} valid stage 1 results")
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+
+
+
+# ========================= DATA PROCESSOR FOR STAGE 2+ =========================
+
+def three_stage_genrm_data_processor_from_stage1(
     datum_dict: dict[str, Any],
     task_data_spec: TaskDataSpec,
     tokenizer,
     max_seq_length: int,
     idx: int,
 ) -> DatumSpec:
-    """Process HelpSteer3 data for three-stage GenRM training."""
+    """Process data that may have stage 1 results, supporting both training and validation modes."""
     
     # Extract data
     context = datum_dict.get("context", "")
@@ -50,15 +100,26 @@ def three_stage_genrm_data_processor(
     helpfulness_2 = datum_dict.get("label_2", None)
     preference_ranking = datum_dict.get("preference_ranking", None)
     
-    # For GRPO, we always start with the vanilla GenRM stage
-    # The environment will handle the progression through all three stages
-    vanilla_prompt = format_vanilla_genrm_prompt(context, response1, response2)
+    # Stage 1 results (may be pre-computed or None for validation)
+    vanilla_scores = datum_dict.get("vanilla_scores", [])
+    vanilla_ranking = datum_dict.get("vanilla_ranking", None)
+    vanilla_response = datum_dict.get("vanilla_response", "")
     
-    # Create message log for vanilla GenRM stage
+    # Determine starting stage based on whether we have vanilla scores
+    if vanilla_scores and vanilla_ranking is not None:
+        # Pre-computed vanilla scores - start from fact-checking (stage 2)
+        starting_stage = "factcheck"
+        prompt = format_factcheck_prompt(context, response1, response2)
+    else:
+        # No vanilla scores - start from vanilla GenRM (stage 1) 
+        starting_stage = "vanilla"
+        prompt = format_vanilla_genrm_prompt(context, response1, response2)
+    
+    # Create message log
     message_log = []
     user_message = {
         "role": "user",
-        "content": vanilla_prompt,
+        "content": prompt,
     }
     
     # Apply chat template
@@ -88,9 +149,10 @@ def three_stage_genrm_data_processor(
         "helpfulness_1": helpfulness_1,
         "helpfulness_2": helpfulness_2,
         "preference_ranking": preference_ranking,
-        "stage": "vanilla",  # Always start with vanilla stage
-        "vanilla_scores": None,
-        "vanilla_ranking": None,
+        "stage": starting_stage,  # Start from appropriate stage
+        "vanilla_scores": vanilla_scores if vanilla_scores else None,
+        "vanilla_ranking": vanilla_ranking,
+        "vanilla_response": vanilla_response,
         "factcheck_results": None,
         "context": context,
         "response1": response1,
@@ -108,10 +170,10 @@ def three_stage_genrm_data_processor(
 
 # ========================= DATA SETUP =========================
 
-def setup_three_stage_data(tokenizer, data_config, env_configs):
-    """Setup data for three-stage GenRM training."""
+def setup_three_stage_data_from_stage1(tokenizer, data_config, env_configs, stage1_results_path):
+    """Setup data for three-stage GenRM training starting from stage 1 results."""
     
-    print("\n▶ Setting up three-stage data...")
+    print(f"\n▶ Setting up three-stage data from stage 1 results...")
     
     # Create task spec for three-stage GenRM
     three_stage_task_spec = TaskDataSpec(
@@ -120,24 +182,28 @@ def setup_three_stage_data(tokenizer, data_config, env_configs):
         system_prompt_file=data_config.get("system_prompt_file"),
     )
     
-    # Load datasets
-    train_data_path = data_config.get("train_data_path")
-    val_data_path = data_config.get("val_data_path")
-    train_dataset = HelpSteer3LocalDataset(
-        train_data_path, 
-        task_name="three_stage_genrm", 
-        shuffle_seed=data_config.get("shuffle_seed_for_training"), 
-        split='train'
+    # Load stage 1 results dataset for training
+    train_dataset = Stage1ResultsDataset(
+        stage1_results_path, 
+        task_name="three_stage_genrm"
     )
-    val_dataset = HelpSteer3LocalDataset(
-        val_data_path, 
-        task_name="three_stage_genrm", 
-        split='validation'
-    ) if val_data_path else None
+    
+    # For validation, use HelpSteer3 validation set going through full 3-stage process
+    val_dataset = None
+    val_data_path = data_config.get("val_data_path")
+    if val_data_path and os.path.exists(val_data_path):
+        print(f"Loading validation data from HelpSteer3: {val_data_path}")
+        val_dataset = HelpSteer3LocalDataset(
+            val_data_path,
+            task_name="three_stage_genrm",
+            split="validation"
+        )
+    else:
+        print("No validation data path provided or file not found")
     
     # Setup task data processors
-    task_data_processors = defaultdict(lambda: (three_stage_task_spec, three_stage_genrm_data_processor))
-    task_data_processors["three_stage_genrm"] = (three_stage_task_spec, three_stage_genrm_data_processor)
+    task_data_processors = defaultdict(lambda: (three_stage_task_spec, three_stage_genrm_data_processor_from_stage1))
+    task_data_processors["three_stage_genrm"] = (three_stage_task_spec, three_stage_genrm_data_processor_from_stage1)
     
     # Setup three-stage environment
     from nemo_rl.distributed.ray_actor_environment_registry import get_actor_python_env
@@ -176,6 +242,7 @@ def setup_three_stage_data(tokenizer, data_config, env_configs):
             task_data_processors,
             max_seq_length=data_config["max_input_seq_length"],
         )
+        print(f"Created validation dataset with {len(processed_val_dataset)} samples")
     
     return processed_train_dataset, processed_val_dataset, task_to_env, val_task_to_env
 
@@ -198,9 +265,6 @@ def setup_three_stage_training(config, tokenizer, dataset, val_dataset):
         master_config,
     ) = setup(config, tokenizer, dataset, val_dataset)
     
-    # The three-stage system naturally handles multi-turn through the environment
-    # No special generation wrapper needed - GRPO's multi-turn support handles it
-    
     return (
         policy,
         policy_generation,
@@ -218,9 +282,13 @@ def setup_three_stage_training(config, tokenizer, dataset, val_dataset):
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Run GRPO training for Three-Stage GenRM")
+    parser = argparse.ArgumentParser(description="Run GRPO training for Three-Stage GenRM from Stage 1 results")
     parser.add_argument(
         "--config", type=str, default=None, help="Path to YAML config file"
+    )
+    parser.add_argument(
+        "--stage1-results", type=str, default="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/1grpo_hs3_16K_step240_clip_max_0.28_qwen3_14b_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_64_num_prompts_128_r0_base/outputs/step_45_hs3train_results.json", 
+        help="Path to JSON file containing stage 1 results"
     )
     args, overrides = parser.parse_known_args()
     return args, overrides
@@ -235,8 +303,13 @@ def main():
             os.path.dirname(__file__), "configs", "grpo_genrm_3stages.yaml"
         )
 
+    # Validate stage 1 results file
+    if not os.path.exists(args.stage1_results):
+        raise FileNotFoundError(f"Stage 1 results file not found: {args.stage1_results}")
+
     config = load_config(args.config)
     print(f"Loaded configuration from: {args.config}")
+    print(f"Loading stage 1 results from: {args.stage1_results}")
 
     if overrides:
         print(f"Overrides: {overrides}")
@@ -264,11 +337,12 @@ def main():
         config["policy"]["generation"], tokenizer
     )
 
-    # Setup data
-    train_dataset, val_dataset, task_to_env, val_task_to_env = setup_three_stage_data(
+    # Setup data from stage 1 results
+    train_dataset, val_dataset, task_to_env, val_task_to_env = setup_three_stage_data_from_stage1(
         tokenizer, 
         config["data"], 
         config["env"],
+        args.stage1_results
     )
     
     # Debug: Print first example from the dataset
@@ -279,6 +353,11 @@ def main():
         for key, value in first_example.items():
             if isinstance(value, str) and len(value) > 200:
                 print(f"  {key}: {value[:200]}...")
+            elif key == "extra_env_info" and isinstance(value, dict):
+                print(f"  {key} keys: {list(value.keys())}")
+                print(f"    stage: {value.get('stage')}")
+                print(f"    vanilla_scores: {value.get('vanilla_scores')}")
+                print(f"    vanilla_ranking: {value.get('vanilla_ranking')}")
             else:
                 print(f"  {key}: {value}")
 

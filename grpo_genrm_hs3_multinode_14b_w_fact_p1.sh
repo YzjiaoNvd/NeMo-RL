@@ -2,10 +2,9 @@
 
 set -x
 
-GPFS="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL"
-CONTAINER="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
-export HF_HOME=/lustre/fsw/portfolios/llmservice/users/yizhuj/hf_cache
-
+GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
+CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
+export HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache
 
 
 # Number of nodes for the job
@@ -22,7 +21,7 @@ ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
 project_name="yizhu_rlhf"
-lr=2e-6
+lr=2e-8
 temp=1
 grpo_bs=256
 prompts_per_step=128
@@ -31,9 +30,9 @@ kl=0.001
 reward="r0"
 data_version="_base" # 
 
-NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}_fact"
+NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}_fact1"
 
-RESULTS_DIR="/lustre/fsw/portfolios/llmservice/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
+RESULTS_DIR="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/${NAME}${data_version}"
 mkdir -p $RESULTS_DIR
 
 ACTOR_LOG_DIR="${RESULTS_DIR}/logs"
@@ -44,7 +43,7 @@ PPO_OUTFILE="${ACTOR_LOG_DIR}/%j_%t.log"
 
 
 # Construct the command to run
-COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
+COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact1.py \
     ++logger.wandb.name=${NAME} \
     ++logger.wandb_enabled=True \
     logger.wandb.project=${project_name} \
@@ -61,8 +60,8 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
     grpo.val_period=5 \
     grpo.max_val_samples=16 \
     grpo.val_batch_size=16 \
-    data.train_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/train_data${data_version}.jsonl" \
-    data.val_data_path="/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/hs3_genrm/val_data${data_version}.jsonl" \
+    data.train_data_path="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/train_data${data_version}.jsonl" \
+    data.val_data_path="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/hs3_genrm/val_data${data_version}.jsonl" \
     loss_fn.reference_policy_kl_penalty=${kl} \
     loss_fn.use_on_policy_kl_approximation=False \
     loss_fn.use_importance_sampling_correction=False \
@@ -94,9 +93,9 @@ CONTAINER="${CONTAINER}" \
 MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
-    --account=llmservice_modelalignment_ppo \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version}_w_fact \
-    --partition=batch \
+    --account=llmservice_modelalignment_sft \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${lr}_${reward}${data_version}_w_fact1 \
+    --partition=batch_block1 \
     --time=4:00:00 \
     --gres=gpu:8 \
     --mem=0 \

@@ -1,4 +1,5 @@
 # Three-Stage GenRM Implementation: Vanilla → Fact-Check → Enhanced
+# Modified to support loading stage 1 results and starting from stage 2
 import re
 import json
 import logging
@@ -106,12 +107,12 @@ FACTCHECK_PROMPT = """You are a fact-checking expert. Analyze the given two resp
 
 **Output Format:**
 [Fact Checking for Response 1]
-- Factual Errors: [List specific factual errors, or "None identified"]
+- Factual Errors: [List all factual errors (the spans from the original model responses), or "None identified"]
 - Corrections: [Provide correct information if you know it, or "Unknown"]
 [End of Fact Checking for Response 1]
 
 [Fact Checking for Response 2] 
-- Factual Errors: [List specific factual errors, or "None identified"]
+- Factual Errors: [List all factual errors (the spans from the original model responses), or "None identified"]
 - Corrections: [Provide correct information if you know it, or "Unknown"]
 [End of Fact Checking for Response 2]"""
 
@@ -206,6 +207,7 @@ class ThreeStageMetadata(TypedDict):
     stage: str  # "vanilla", "factcheck", "enhanced"
     vanilla_scores: Optional[List[int]]
     vanilla_ranking: Optional[int]
+    vanilla_response: Optional[str]  # Store original vanilla response
     factcheck_results: Optional[str]
     context: Optional[str]
     response1: Optional[str]
@@ -439,6 +441,7 @@ class ThreeStageGenRMEnvironment(EnvironmentInterface):
         updated_metadata["stage"] = "factcheck"
         updated_metadata["vanilla_scores"] = [int(s) for s in scores] if scores else []
         updated_metadata["vanilla_ranking"] = int(ranking) if ranking else None
+        updated_metadata["vanilla_response"] = response
         
         # Create fact-checking prompt for next stage
         factcheck_prompt = format_factcheck_prompt(
@@ -490,11 +493,22 @@ class ThreeStageGenRMEnvironment(EnvironmentInterface):
                 "content": f"Enhanced GenRM format error: {error_msg}"
             }, None
         
-        # Calculate rewards
+        # Calculate rewards using vanilla scores (either pre-computed or from stage 1)
         try:
+            # Get vanilla scores (either from processing or pre-loaded)
+            vanilla_scores = metadata.get("vanilla_scores", [])
+            vanilla_ranking = metadata.get("vanilla_ranking")
+            
+            if not vanilla_scores:
+                logging.error("No vanilla scores found in metadata")
+                return float(self.format_penalty), {
+                    "role": "environment",
+                    "content": "Missing vanilla scores from stage 1"
+                }, None
+            
             # Calculate initial reward from vanilla scores
-            vanilla_scores_str = [str(s) for s in metadata.get("vanilla_scores", [])]
-            vanilla_ranking_str = str(metadata.get("vanilla_ranking")) if metadata.get("vanilla_ranking") else None
+            vanilla_scores_str = [str(s) for s in vanilla_scores]
+            vanilla_ranking_str = str(vanilla_ranking) if vanilla_ranking is not None else None
             initial_reward = calculate_reward_from_scores(vanilla_scores_str, vanilla_ranking_str, metadata)
             
             # Calculate enhanced reward from enhanced scores
@@ -515,7 +529,12 @@ class ThreeStageGenRMEnvironment(EnvironmentInterface):
                 "enhanced_reward": enhanced_reward,
                 "fact_check_bonus": fact_check_bonus,
                 "base_reward": base_reward,
-                "final_reward": final_reward
+                "final_reward": final_reward,
+                "vanilla_scores": vanilla_scores,
+                "vanilla_ranking": vanilla_ranking,
+                "enhanced_scores": [int(s) for s in enhanced_scores] if enhanced_scores else [],
+                "enhanced_ranking": int(enhanced_ranking) if enhanced_ranking else None,
+                "is_validation": metadata.get("vanilla_response") is None,  # Indicate if this was validation
             }
             
         except Exception as e:
@@ -563,7 +582,7 @@ class ThreeStageGenRMEnvironment(EnvironmentInterface):
             "high_reward_rate": high_reward_rate,
             "num_samples": num_samples,
             "valid_samples": len(valid_rewards),
-            "approach": "three_stage_genrm",
+            "approach": "three_stage_genrm_from_stage1",  # Indicate this starts from stage 1 results
         }
         
         return batch, metrics

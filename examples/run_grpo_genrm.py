@@ -39,6 +39,9 @@ def helpsteer3_genrm_data_processor(
     """Process HelpSteer3 data for GenRM training."""
     
     # Extract the prompt (which contains the full formatted prompt with responses)
+    context = datum_dict.get("context", "")
+    response1 = datum_dict.get("response1", "")
+    response2 = datum_dict.get("response2", "")
     prompt = datum_dict.get("prompt", "")
 
     # Prepare metadata for environment
@@ -66,6 +69,7 @@ def helpsteer3_genrm_data_processor(
     )
 
     user_message["token_ids"] = tokenizer(message, return_tensors="pt")["input_ids"][0]
+    user_message["content"] = message  
     message_log.append(user_message)
     
     # Calculate total length
@@ -119,7 +123,7 @@ def setup_data(
     # Load local datasets
     train_data_path = data_config.get("train_data_path")
     val_data_path = data_config.get("val_data_path")
-    train_dataset = HelpSteer3LocalDataset(train_data_path, shuffle_seed=data_config.get("shuffle_seed_for_training"))
+    train_dataset = HelpSteer3LocalDataset(train_data_path, shuffle_seed=data_config.get("shuffle_seed_for_training"), split='train')
     val_dataset = HelpSteer3LocalDataset(val_data_path) if val_data_path else None
     
     # ISSUE 1 FIX: Use defaultdict to handle the task processor mapping correctly
@@ -221,6 +225,15 @@ def main() -> None:
         for key, value in first_example.items():
             if isinstance(value, str) and len(value) > 200:
                 print(f"  {key}: {value[:200]}...")
+            else:
+                print(f"  {key}: {value}")
+        
+        print("\n[DEBUG] Second example from dataset:")
+        first_example = dataset[1]
+        print(f"  Keys: {list(first_example.keys())}")
+        for key, value in first_example.items():
+            if isinstance(value, str) and len(value) > 200:
+                print(f"  {key}: {value}...")
             else:
                 print(f"  {key}: {value}")
 

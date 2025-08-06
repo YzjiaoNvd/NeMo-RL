@@ -48,18 +48,17 @@ def compute_rmbench_accuracy_for_sample(sample_results: List[dict]) -> Dict[str,
     comparison_matrix = np.zeros((3, 3))
     comparison_counts = np.zeros((3, 3))
     
-    domain = "unknown"
-    sample_id = "unknown"
+
     
     for result in sample_results:
         metadata = result.get("metadata", {})
         
         # Extract metadata
-        domain = metadata.get("domain", "unknown")
-        sample_id = metadata.get("sample_id", "unknown")
-        chosen_style_idx = metadata.get("chosen_style_idx", 0)
-        rejected_style_idx = metadata.get("rejected_style_idx", 0)
-        gt = metadata.get("preference_ranking", 0)
+        domain = metadata.get("domain")
+        sample_id = metadata.get("sample_id")
+        chosen_style_idx = metadata.get("chosen_style_idx")
+        rejected_style_idx = metadata.get("rejected_style_idx")
+        gt = metadata.get("preference_ranking")
         
         # Extract preference using the robust method (same as original script)
         chosen_is_better = extract_preference(result)
@@ -106,109 +105,6 @@ def compute_rmbench_accuracy_for_sample(sample_results: List[dict]) -> Dict[str,
     }
 
 
-def compute_rmbench_metrics(directory_path: str, dataset: str = "rmbench") -> Dict[str, Any]:
-    """
-    Compute RM-Bench specific metrics from evaluation results.
-    
-    Args:
-        directory_path: Path to directory containing evaluation JSON files
-        dataset: Dataset name (should be "rmbench")
-    
-    Returns:
-        Dictionary with RM-Bench metrics by domain and overall
-    """
-    # Find evaluation files
-    file_pattern = re.compile(rf'step_(\d+)_{dataset}_results\.json')
-    
-    all_metrics = {}
-    
-    try:
-        for filename in os.listdir(directory_path):
-            match = file_pattern.match(filename)
-            if match:
-                step_number = int(match.group(1))
-                file_path = os.path.join(directory_path, filename)
-                
-                print(f"Processing step {step_number}: {filename}")
-                
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        results = json.load(f)
-                    
-                    if not isinstance(results, list):
-                        print(f"Warning: {filename} does not contain a list of results")
-                        continue
-                    
-                    # Group results by sample ID
-                    grouped_results = group_results_by_sample(results)
-                    
-                    # Compute metrics for each sample
-                    sample_metrics = []
-                    for sample_id, sample_results in grouped_results.items():
-                        if len(sample_results) > 0:  # Should have 9 results per sample (3x3 matrix)
-                            sample_metric = compute_rmbench_accuracy_for_sample(sample_results)
-                            sample_metrics.append(sample_metric)
-                    
-                    if not sample_metrics:
-                        print(f"Warning: No valid samples found in {filename}")
-                        continue
-                    
-                    # Aggregate metrics by domain
-                    domain_metrics = defaultdict(list)
-                    for metric in sample_metrics:
-                        domain = metric["domain"]
-                        domain_metrics[domain].append(metric)
-                    
-                    # Calculate averages for each domain
-                    step_metrics = {"step": step_number, "domains": {}, "overall": {}}
-                    
-                    all_samples = []
-                    for domain, domain_samples in domain_metrics.items():
-                        if domain_samples:
-                            domain_hard_acc = np.mean([s["hard_acc"] for s in domain_samples])
-                            domain_normal_acc = np.mean([s["normal_acc"] for s in domain_samples])
-                            domain_easy_acc = np.mean([s["easy_acc"] for s in domain_samples])
-                            domain_total_avg_acc = np.mean([s["total_avg_acc"] for s in domain_samples])
-                            
-                            step_metrics["domains"][domain] = {
-                                "hard_acc": domain_hard_acc,
-                                "normal_acc": domain_normal_acc,
-                                "easy_acc": domain_easy_acc,
-                                "total_avg_acc": domain_total_avg_acc,
-                                "sample_count": len(domain_samples)
-                            }
-                            
-                            all_samples.extend(domain_samples)
-                    
-                    # Calculate overall metrics
-                    if all_samples:
-                        overall_hard_acc = np.mean([s["hard_acc"] for s in all_samples])
-                        overall_normal_acc = np.mean([s["normal_acc"] for s in all_samples])
-                        overall_easy_acc = np.mean([s["easy_acc"] for s in all_samples])
-                        overall_total_avg_acc = np.mean([s["total_avg_acc"] for s in all_samples])
-                        
-                        step_metrics["overall"] = {
-                            "hard_acc": overall_hard_acc,
-                            "normal_acc": overall_normal_acc,
-                            "easy_acc": overall_easy_acc,
-                            "total_avg_acc": overall_total_avg_acc,
-                            "sample_count": len(all_samples)
-                        }
-                    
-                    all_metrics[step_number] = step_metrics
-                    
-                except json.JSONDecodeError:
-                    print(f"Error: {filename} is not valid JSON")
-                except Exception as e:
-                    print(f"Error processing {filename}: {e}")
-    
-    except FileNotFoundError:
-        print(f"Error: Directory not found: '{directory_path}'")
-        return {}
-    
-    return all_metrics
-
-
 def print_rmbench_results(metrics: Dict[str, Any]):
     """Print RM-Bench results in a formatted way."""
     if not metrics:
@@ -225,27 +121,33 @@ def print_rmbench_results(metrics: Dict[str, Any]):
     for step in sorted_steps:
         step_data = metrics[step]
         print(f"\nStep {step}:")
-        print("-" * 40)
+        #print("-" * 40)
         
         # Print overall metrics
+        
         overall = step_data.get("overall", {})
         if overall:
-            print(f"Overall Metrics (samples: {overall.get('sample_count', 0)}):")
-            print(f"  Hard Accuracy:      {overall.get('hard_acc', 0):.3f}")
-            print(f"  Normal Accuracy:    {overall.get('normal_acc', 0):.3f}")
-            print(f"  Easy Accuracy:      {overall.get('easy_acc', 0):.3f}")
+            #print(f"Overall Metrics (samples: {overall.get('sample_count', 0)}):")
+            #print(f"  Hard Accuracy:      {overall.get('hard_acc', 0):.3f}")
+            #print(f"  Normal Accuracy:    {overall.get('normal_acc', 0):.3f}")
+            #print(f"  Easy Accuracy:      {overall.get('easy_acc', 0):.3f}")
             print(f"  Total Avg Accuracy: {overall.get('total_avg_acc', 0):.3f}")
         
+
         # Print domain-specific metrics
+        
         domains = step_data.get("domains", {})
         if domains:
             print(f"\nDomain-specific Metrics:")
             for domain, domain_data in sorted(domains.items()):
-                print(f"  {domain.upper()} (samples: {domain_data.get('sample_count', 0)}):")
-                print(f"    Hard Acc:   {domain_data.get('hard_acc', 0):.3f}")
-                print(f"    Normal Acc: {domain_data.get('normal_acc', 0):.3f}")
-                print(f"    Easy Acc:   {domain_data.get('easy_acc', 0):.3f}")
+                if domain != 'chat':
+                    continue
+                #print(f"  {domain.upper()} (samples: {domain_data.get('sample_count', 0)}):")
+                #print(f"    Hard Acc:   {domain_data.get('hard_acc', 0):.3f}")
+                #print(f"    Normal Acc: {domain_data.get('normal_acc', 0):.3f}")
+                #print(f"    Easy Acc:   {domain_data.get('easy_acc', 0):.3f}")
                 print(f"    Total Avg:  {domain_data.get('total_avg_acc', 0):.3f}")
+        
         
 
 

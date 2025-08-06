@@ -9,7 +9,7 @@ DATASET="${2:-rmbench}"
 
 
 # Find evaluation script
-EVAL_SCRIPT="$(dirname "$0")/evaluate_genrm_one_step_w_fact.sh"
+EVAL_SCRIPT="$(dirname "$0")/evaluate_genrm_one_step_w_fact1.sh"
 if [ ! -f "$EVAL_SCRIPT" ]; then
     echo "Error: evaluate_genrm_one_step.sh not found"
     exit 1
