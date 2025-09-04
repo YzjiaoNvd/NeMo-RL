@@ -54,8 +54,8 @@ class Stage1ResultsDataset(torch.utils.data.Dataset):
                     "response1": metadata["response1"], 
                     "response2": metadata["response2"],
                     "num_responses": metadata.get("num_responses", 2),
-                    "label_1": metadata.get("helpfulness_1"),
-                    "label_2": metadata.get("helpfulness_2"),
+                    "helpfulness_1": metadata.get("helpfulness_1"),
+                    "helpfulness_2": metadata.get("helpfulness_2"),
                     "preference_ranking": metadata.get("preference_ranking"),
                     
                     # Stage 1 results
@@ -96,8 +96,8 @@ def three_stage_genrm_data_processor_from_stage1(
     response2 = datum_dict.get("response2", "")
     
     num_responses = datum_dict.get("num_responses", 2)
-    helpfulness_1 = datum_dict.get("label_1", None)
-    helpfulness_2 = datum_dict.get("label_2", None)
+    helpfulness_1 = datum_dict.get("helpfulness_1", None)
+    helpfulness_2 = datum_dict.get("helpfulness_2", None)
     preference_ranking = datum_dict.get("preference_ranking", None)
     
     # Stage 1 results (may be pre-computed or None for validation)

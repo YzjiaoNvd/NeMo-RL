@@ -9,7 +9,12 @@ import json
 import numpy as np
 import torch
 import random
+import glob
+import os 
 
+random.seed(42)
+   
+   
 GENRM_PROMPT_TEMPLATE = """You are a skilled little expert at scoring responses. You should evaluate given responses based on the given judging criteria.
 Given the context of the conversation (the last turn is the User's query) and one or two responses from the Assistant, you need to refer to the [Helpfulness Scoring Guidelines] to score each individual response.
 If there are two responses, you need to also give a ranking score based on the [Ranking Scoring Guidelines].
@@ -76,19 +81,18 @@ Analysis on the i-th response
 
 Then give the scores of each response in order, separate by comma in the boxed, adhering this format:
 [The Begin of Individual Scores]
-\\boxed{{x, y}} if there exists 2 responses
+\\boxed{{x, y}} 
 [The End of Individual Scores]
 
 If there are two responses, give the relative ranking score in the format of:
 [The Begin of Ranking Score]
-\\boxed{{z}} 
+\\boxed{{z}} if there exists 2 responses
 [The End of Ranking Score]
 You don't need to give a ranking score if only one response is provided."""
 
 
 
-random.seed(42)
-            
+         
 
 def format_genrm_prompt(context: str, response1: str, response2: Optional[str] = None) -> str:
     """Format the GenRM prompt with context and responses."""
@@ -110,27 +114,25 @@ def format_genrm_prompt(context: str, response1: str, response2: Optional[str] =
 def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Format JudgeBench data for GenRM evaluation."""
     # Extract conversation context and responses based on actual JudgeBench format
-    context = data.get("question").replace("\n", " ")
+    context = data.get("question")
     context = "User: " + context
-    response1 = data.get("response_A").replace("\n", " ")
-    response2 = data.get("response_B").replace("\n", " ")
+    response1 = data.get("response_A")
+    response2 = data.get("response_B")
     
     # Parse the label field (e.g., "B>A" means B is better than A)
     label = data.get("label")
     preference = None
     if label == "A>B":
         preference = 0  # Response 1 (A) is better
-    elif label == "A<B":
+    elif label == "B>A":
         preference = 1  # Response 2 (B) is better
     else:
+        print("Invalid label: ", label)
         return []
     
-    # JudgeBench doesn't have individual scores, just preference labels
     result1 = {
         "prompt": format_genrm_prompt(context, response1, response2),
         "num_responses": 2,
-        "label_1": None,  # JudgeBench doesn't provide individual scores
-        "label_2": None,
         "preference": preference,
         "context": context,
         "response1": response1,
@@ -140,8 +142,6 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     result2 = {
         "prompt": format_genrm_prompt(context, response2, response1),
         "num_responses": 2,
-        "label_1": None,  # JudgeBench doesn't provide individual scores
-        "label_2": None,
         "preference": 1-preference,
         "context": context,
         "response1": response2,
@@ -151,48 +151,6 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     return [result1, result2]
 
 
-'''
-def format_rmbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Format RM-Bench data for GenRM evaluation."""
-    # Extract prompt and responses
-    prompt_text = data.get("prompt", "")
-    chosen_responses = data.get("chosen", [])
-    rejected_responses = data.get("rejected", [])
-
-    # Format as conversation context
-    context = f"User: {prompt_text}"
-    
-    # Create comparisons between each chosen and rejected response
-    examples = []
-    for chosen_resp, rejected_resp in zip(chosen_responses, rejected_responses):
-        example1 = {
-            "prompt": format_genrm_prompt(context, chosen_resp, rejected_resp),
-            "num_responses": 2,
-            "label_1": None,  # RM-Bench doesn't have individual scores
-            "label_2": None,
-            "preference": 0,  # 0 = first response (chosen) is better
-            # Add raw context and responses for two-stage evaluation
-            "context": context,
-            "response1": chosen_resp,
-            "response2": rejected_resp,
-        }
-        examples.append(example1)
-
-        example2 = {
-            "prompt": format_genrm_prompt(context, rejected_resp, chosen_resp),
-            "num_responses": 2,
-            "label_1": None,  # RM-Bench doesn't have individual scores
-            "label_2": None,
-            "preference": 1,  # 1 = second response (chosen) is better
-            # Add raw context and responses for two-stage evaluation
-            "context": context,
-            "response1": rejected_resp,
-            "response2": chosen_resp,
-        }
-        examples.append(example2)
-
-    return examples
-'''
 
 def format_rmbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Format RM-Bench data for GenRM evaluation while preserving RM-Bench structure."""
@@ -226,8 +184,6 @@ def format_rmbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
             example = {
                 "prompt": format_genrm_prompt(context, response1, response2),
                 "num_responses": 2,
-                "label_1": None,  # RM-Bench doesn't have individual scores
-                "label_2": None,
                 "preference": preference,
                 "context": context,
                 "response1": response1,
@@ -259,39 +215,163 @@ def format_rewardbench2_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     examples = []
     for rejected_resp in rejected_responses:
         # Create the GenRM prompt
-        prompt = format_genrm_prompt(context, chosen_responses[0], rejected_resp)    
-        # Create example with metadata
+        preference = random.choice([0, 1])
+                
+        if preference == 0: # First response (chosen) is better
+            response1 = chosen_responses[0]
+            response2 = rejected_resp
+        else: # Second response (chosen) is better
+            response1 = rejected_resp
+            response2 = chosen_responses[0]
+                
         example = {
-            "prompt": prompt,
+            "prompt": format_genrm_prompt(context, response1, response2),
             "num_responses": 2,
-            "label_1": None,  # RM-Bench doesn't have individual scores
-            "label_2": None,
-            "preference": 0,  # 0 = first response (chosen) is better
-            # Add raw context and responses for two-stage evaluation
+            "preference": preference,
             "context": context,
-            "response1": chosen_responses[0],
-            "response2": rejected_resp,
+            "response1": response1,
+            "response2": response2,
         }
+
         examples.append(example)
 
     return examples
 
 
+def format_rewardbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Format RM-Bench data for GenRM evaluation."""
+    # Extract prompt and responses
+    prompt_text = data.get("prompt", "")
+    chosen_resp = data.get("chosen", "")
+    rejected_resp = data.get("rejected", "")
+
+    # Format as conversation context
+    context = f"User: {prompt_text}"
+    
+    # Create comparisons between each chosen and rejected response
+
+    preference = random.choice([0, 1])
+            
+    if preference == 0: # First response (chosen) is better
+        response1 = chosen_resp
+        response2 = rejected_resp
+    else: # Second response (chosen) is better
+        response1 = rejected_resp
+        response2 = chosen_resp
+            
+    example = {
+        "prompt": format_genrm_prompt(context, response1, response2),
+        "num_responses": 2,
+        "preference": preference,
+        "context": context,
+        "response1": response1,
+        "response2": response2,
+    }
+
+    return [example]
+
+
+
+def format_rmb_example(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Format RMB data for GenRM evaluation."""
+    # Extract conversation context
+    conversation_input = data.get("conversation_input", [])
+    context_parts = []
+    for turn in conversation_input:
+        role = turn.get("role", "")
+        content = turn.get("content", "")
+        if role.lower() == "user":
+            context_parts.append(f"User: {content}")
+        elif role.lower() == "assistant":
+            context_parts.append(f"Assistant: {content}")
+    
+    context = "\n".join(context_parts)
+    
+    # Extract responses
+    chosen_resp = data.get("chosen", {}).get("answer", "")
+    rejected_resp = data.get("reject", {}).get("answer", "")
+    
+    # Create comparisons with random order to avoid position bias
+    preference = random.choice([0, 1])
+    
+    if preference == 0:  # First response (chosen) is better
+        response1 = chosen_resp
+        response2 = rejected_resp
+    else:  # Second response (chosen) is better
+        response1 = rejected_resp
+        response2 = chosen_resp
+    
+    example = {
+        "prompt": format_genrm_prompt(context, response1, response2),
+        "num_responses": 2,
+        "preference": preference,
+        "context": context,
+        "response1": response1,
+        "response2": response2,
+        "category_path": data.get("category_path", ""),
+        "pair_uid": data.get("pair_uid", ""),
+    }
+    
+    return [example]
+
+
+class RMBDataset:
+    """RMB dataset for GenRM evaluation."""
+    
+    def __init__(self, data_folder: str = "/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/RMB-Reward-Model-Benchmark/RMB_dataset/Pairwise_set"):
+        
+        # Find all JSON files in the data folder and subdirectories
+        json_files = glob.glob(os.path.join(data_folder, "**", "*.json"), recursive=True)
+        
+        if not json_files:
+            raise FileNotFoundError(f"No JSON files found in {data_folder}")
+        
+        print(f"Found {len(json_files)} JSON files: {[os.path.basename(f) for f in json_files]}")
+        
+        # Load and combine all data
+        all_data = []
+        for json_file in json_files:
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    file_data = json.load(f)
+                    if isinstance(file_data, list):
+                        all_data.extend(file_data)
+                    else:
+                        all_data.append(file_data)
+                print(f"Loaded {len(file_data) if isinstance(file_data, list) else 1} examples from {os.path.basename(json_file)}")
+            except Exception as e:
+                print(f"Error loading {json_file}: {e}")
+                continue
+        
+        print(f"Total loaded examples: {len(all_data)}")
+        
+        # Format all examples
+        all_formatted_examples = []
+        for example in all_data:
+            formatted_examples = format_rmb_example(example)
+            all_formatted_examples.extend(formatted_examples)
+        
+        print(f"Total formatted examples: {len(all_formatted_examples)}")
+        
+        # Create a new dataset from the formatted examples
+        self.formatted_ds = Dataset.from_list(all_formatted_examples)
 
 
 class JudgeBenchDataset:
     """JudgeBench dataset for GenRM evaluation."""
     def __init__(self):
         # Load both splits
-        gpt_ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
-        claude_ds = load_dataset("ScalerLab/JudgeBench", split="claude")
+        #gpt_ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
+        #claude_ds = load_dataset("ScalerLab/JudgeBench", split="claude")
         
         # Merge the datasets
-        merged_ds = concatenate_datasets([gpt_ds, claude_ds])
+        #merged_ds = concatenate_datasets([gpt_ds, claude_ds])
         
+        gpt_ds = load_dataset("ScalerLab/JudgeBench", split="gpt")
+
         # Manually expand the dataset by iterating through each example
         all_formatted_examples = []
-        for example in merged_ds:
+        for example in gpt_ds:
             # Get the three formatted examples for this sample
             formatted_examples = format_judgebench_example(example)
             all_formatted_examples.extend(formatted_examples)
@@ -341,6 +421,26 @@ class RewardBench2Dataset:
         self.formatted_ds = Dataset.from_list(all_formatted_examples)
 
 
+
+class RewardBenchDataset:
+    """RewardBench dataset for GenRM evaluation."""
+    
+    def __init__(self):
+        # Load all splits except Ties
+        ds = load_dataset("allenai/reward-bench", split="filtered")
+
+        # Manually expand the dataset by iterating through each example
+        all_formatted_examples = []
+        for example in ds:
+            # Get the three formatted examples for this sample
+            formatted_examples = format_rewardbench_example(example)
+            all_formatted_examples.extend(formatted_examples)
+        
+        # Create a new dataset from the expanded examples
+        self.formatted_ds = Dataset.from_list(all_formatted_examples)
+
+
+
 ######issue to be fixed: change the input file 
 class HelpSteer3LocalDataset(torch.utils.data.Dataset):
     """Dataset for loading HelpSteer3 data from local JSONL files."""
@@ -356,8 +456,8 @@ class HelpSteer3LocalDataset(torch.utils.data.Dataset):
                     example = {
                         "prompt": format_genrm_prompt(one["args"]["context"], one["args"]["response1"], one["args"]["response2"]),
                         "num_responses": 2,
-                        "label_1": one["args"]["helpfulness_1"],  
-                        "label_2": one["args"]["helpfulness_2"],
+                        "helpfulness_1": one["args"]["helpfulness_1"],  
+                        "helpfulness_2": one["args"]["helpfulness_2"],
                         "preference": preference, 
                         "preference_ranking": one["args"]["preference_ranking"],
                         "context": one["args"]["context"],
@@ -369,8 +469,8 @@ class HelpSteer3LocalDataset(torch.utils.data.Dataset):
                     example = {
                         "prompt": format_genrm_prompt(one["args"]["context"], one["args"]["response2"], one["args"]["response1"]),
                         "num_responses": 2,
-                        "label_1": one["args"]["helpfulness_2"],  
-                        "label_2": one["args"]["helpfulness_1"],
+                        "helpfulness_1": one["args"]["helpfulness_2"],  
+                        "helpfulness_2": one["args"]["helpfulness_1"],
                         "preference": 1 - preference, 
                         "preference_ranking": 7 - one["args"]["preference_ranking"],
                         "context": one["args"]["context"],

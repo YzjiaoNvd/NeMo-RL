@@ -21,13 +21,13 @@ ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
 project_name="yizhu_rlhf"
-lr=2e-6
+lr=5e-7
 temp=1
 grpo_bs=256
 prompts_per_step=128
-rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
+rollouts_per_prompt=8
 kl=0.001
-reward="r1"
+reward="r0"
 data_version="_base" # 
 
 NAME="grpo_hs3_16K_step240_clip_max_0.28_${MODEL_NAME}_lr_${lr}_temp_${temp}_kl_${kl}_grpo_bs_${grpo_bs}_rollout_${rollouts_per_prompt}_num_prompts_${prompts_per_step}_${reward}"
@@ -94,7 +94,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_sft \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${reward}${data_version} \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${rollouts_per_prompt}_${reward}${data_version} \
     --partition=batch_block1 \
     --time=4:00:00 \
     --gres=gpu:8 \

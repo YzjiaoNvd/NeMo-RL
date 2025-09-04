@@ -5,7 +5,7 @@ set -e
 STEP_DIR="$1"
 STEP_NUM="$2"
 RESULTS_DIR="${3:-$(dirname "$STEP_DIR")/outputs}"
-DATASET="${4:-"judgebench"}"
+DATASETS="${4:-"rewardbench,rmbench,rewardbench2,rmb,judgebench"}"
 
 # Config
 GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
@@ -14,8 +14,8 @@ CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_
 
 # SLURM Config
 ACCOUNT="llmservice_modelalignment_sft"
-PARTITION="batch_block1"
-TIME="01:00:00"
+PARTITION="interactive"
+TIME="04:00:00"
 NODES=1
 GPUS=8
 
@@ -23,30 +23,47 @@ GPUS=8
 mkdir -p "$RESULTS_DIR/logs"
 LOG="$RESULTS_DIR/logs/step_${STEP_NUM}.out"
 ERR="$RESULTS_DIR/logs/step_${STEP_NUM}.err"
-OUTPUT="$RESULTS_DIR/step_${STEP_NUM}_${DATASET}_results.json"
 
-# Check if already done
-if [ -f "$OUTPUT" ]; then
-    # Check if the output file is valid JSON
-    if jq empty "$OUTPUT" >/dev/null 2>&1; then
-        echo "✓ Step $STEP_NUM already evaluated"
-        exit 0
-    else
-        echo "⚠ Output file exists but contains invalid JSON, will regenerate"
+# Check if already done for all datasets
+ALL_DONE=true
+IFS=',' read -ra DATASET_ARRAY <<< "$DATASETS"
+for dataset in "${DATASET_ARRAY[@]}"; do
+    dataset=$(echo "$dataset" | xargs)  # trim whitespace
+    OUTPUT="$RESULTS_DIR/step_${STEP_NUM}_${dataset}_results.json"
+    
+    if [ ! -f "$OUTPUT" ] || ! jq empty "$OUTPUT" >/dev/null 2>&1; then
+        ALL_DONE=false
+        break
     fi
+done
+
+if [ "$ALL_DONE" = true ]; then
+    echo "✓ Step $STEP_NUM already evaluated for all datasets: $DATASETS"
+    exit 0
 fi
+
+# Create command to run all datasets sequentially
+COMMAND="cd $GPFS && "
+for dataset in "${DATASET_ARRAY[@]}"; do
+    dataset=$(echo "$dataset" | xargs)  # trim whitespace
+    OUTPUT="$RESULTS_DIR/step_${STEP_NUM}_${dataset}_results.json"
+    COMMAND+="echo 'Processing dataset: $dataset' && "
+    COMMAND+="uv run python examples/run_eval_genrm_w_fact1.py --dataset=${dataset} ++generation.model_name=${STEP_DIR} ++eval.output_file=${OUTPUT} ++eval.batch_size=1024 ++generation.vllm_cfg.tensor_parallel_size=1 ++generation.vllm_cfg.gpu_memory_utilization=0.7 ++cluster.gpus_per_node=${GPUS} ++cluster.num_nodes=${NODES} && "
+done
+# Remove the trailing &&
+COMMAND=${COMMAND%"&& "}
 
 # Set up environment and submit job using the new format
 cd "$GPFS"
 
 HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache \
-COMMAND="uv run python examples/run_eval_genrm_w_fact1.py --dataset=${DATASET} ++generation.model_name=${STEP_DIR} ++eval.output_file=${OUTPUT} ++eval.batch_size=1024 ++generation.vllm_cfg.tensor_parallel_size=1 ++generation.vllm_cfg.gpu_memory_utilization=0.7 ++cluster.gpus_per_node=${GPUS} ++cluster.num_nodes=1" \
+COMMAND="$COMMAND" \
 CONTAINER="$CONTAINER" \
 MOUNTS="$GPFS:$GPFS,/lustre:/lustre" \
 sbatch \
     --nodes=$NODES \
     --account=$ACCOUNT \
-    --job-name=eval_fact_step${STEP_NUM}_${DATASET}1 \
+    --job-name=eval_fact1_step${STEP_NUM}_multi \
     --partition=$PARTITION \
     --time=$TIME \
     --gres=gpu:$GPUS \
@@ -54,7 +71,4 @@ sbatch \
     --error=$ERR \
     ray.sub
 
-echo "📤 Submitted job for step_$STEP_NUM"
-
-
-
+echo "📤 Submitted job for step_$STEP_NUM with datasets: $DATASETS"

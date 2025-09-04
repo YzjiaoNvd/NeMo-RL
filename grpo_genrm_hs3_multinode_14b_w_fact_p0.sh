@@ -6,25 +6,28 @@ GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/u
 CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/container/nemo-rl:main-3e5481f.squashfs"
 export HF_HOME=/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/hf_cache
 
+
 # Number of nodes for the job
 NUM_ACTOR_NODES=8
 
 # Model and training configuration
 FSDP2=True
-MODEL="Qwen/Qwen3-14B"
-MODEL_NAME="qwen3_14b"
+MODEL="Qwen/Qwen3-8b"
+MODEL_NAME="qwen3_8b"
 #MODEL="Qwen/Qwen2.5-14B-Instruct"
 #MODEL_NAME="qwen25_14b"
+
 
 ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
 project_name="yizhu_rlhf"
-lr=2e-8
+lr=5e-7
 temp=1
 grpo_bs=256
 prompts_per_step=128
-rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
+#rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
+rollouts_per_prompt=8
 kl=0.001
 reward="r0"
 data_version="_base" # 
@@ -49,7 +52,7 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact.py \
     ++checkpointing.checkpoint_dir=${RESULTS_DIR} \
     ++cluster.num_nodes=${NUM_ACTOR_NODES} \
     policy.dtensor_cfg.enabled=${FSDP2} \
-    policy.dtensor_cfg.sequence_parallel=True \
+    policy.dtensor_cfg.tensor_parallel_size=1 \
     policy.dtensor_cfg.activation_checkpointing=${ACT_CKPT} \
     policy.dtensor_cfg.cpu_offload=${CPU_OFFLOAD} \
     ++policy.dtensor_cfg.context_parallel_size=1 \
@@ -93,7 +96,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_sft \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${lr}_${reward}${data_version}_w_fact \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${lr}_${rollouts_per_prompt}_${reward}${data_version}_w_fact \
     --partition=batch_block1 \
     --time=4:00:00 \
     --gres=gpu:8 \

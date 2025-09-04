@@ -83,6 +83,8 @@ policy:
     temperature: 1.0  # Matching the script
     top_p: 1.0
     top_k: null
+    #top_p: 0.95
+    #top_k: 20
     stop_token_ids: null
     stop_strings: null
     vllm_cfg:

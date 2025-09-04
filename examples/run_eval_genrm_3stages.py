@@ -16,8 +16,10 @@ from nemo_rl.data.datasets import AllTaskProcessedDataset, eval_collate_fn
 from nemo_rl.data.hf_datasets.reward_benchmarks import (
     JudgeBenchDataset,
     RMBenchDataset,
+    RewardBenchDataset,
     RewardBench2Dataset,
     HelpSteer3LocalDataset,
+    RMBDataset,
 )
 from nemo_rl.data.interfaces import DatumSpec, TaskDataSpec
 from nemo_rl.distributed.batched_data_dict import BatchedDataDict
@@ -72,20 +74,7 @@ def genrm_eval_data_processor(
     }]
     
     # Extract metadata for three-stage evaluation
-    metadata = {
-        "num_responses": datum_dict.get("num_responses", 2),
-        "helpfulness_1": datum_dict.get("label_1"),
-        "helpfulness_2": datum_dict.get("label_2"),
-        "preference_ranking": datum_dict.get("preference"),
-        "ground_truth": datum_dict.get("ground_truth"),
-        "context": datum_dict.get("context", ""),
-        "response1": datum_dict.get("response1", ""),
-        "response2": datum_dict.get("response2", ""),
-    }
-        
-    for key in ["domain", "sample_id", "chosen_style_idx", "rejected_style_idx"]:
-        if key in datum_dict.keys():
-            metadata[key] = datum_dict.get(key)
+    metadata = datum_dict.copy()
 
     return DatumSpec(
         message_log=message_log,
@@ -100,7 +89,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run GenRM three-stage evaluation")
     parser.add_argument("--config", type=str, default=None, help="Path to YAML config file")
     parser.add_argument("--dataset", type=str, 
-                       choices=["judgebench", "rmbench", "rewardbench2", "hs3local"],
+                       choices=["judgebench", "rmbench", "rewardbench2", "hs3local", "rewardbench", "rmb"],
                        default=None, help="Dataset to evaluate on")
     args, overrides = parser.parse_known_args()
     return args, overrides
@@ -113,6 +102,7 @@ def setup_data(tokenizer, data_config, dataset_name):
     dataset_loaders = {
         "judgebench": JudgeBenchDataset,
         "rmbench": RMBenchDataset,
+        "rewardbench": RewardBenchDataset,
         "rewardbench2": RewardBench2Dataset,
         "hs3local": HelpSteer3LocalDataset,
     }
@@ -224,7 +214,7 @@ def run_three_stage_evaluation(vllm_generation, dataloader, output_file):
                             "num_responses": num_responses,
                             "helpfulness_1": metadata.get("helpfulness_1"),
                             "helpfulness_2": metadata.get("helpfulness_2"),
-                            "preference_ranking": metadata.get("preference_ranking"),
+                            "preference": metadata.get("preference"),
                         }
                         
                         # Calculate initial reward from vanilla scores

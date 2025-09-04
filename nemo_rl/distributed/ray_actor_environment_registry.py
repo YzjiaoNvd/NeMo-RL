@@ -26,7 +26,12 @@ ACTOR_ENVIRONMENT_REGISTRY: dict[str, str] = {
     "nemo_rl.environments.genrm_environment.GenRMEnvironment": PY_EXECUTABLES.SYSTEM,
     "nemo_rl.environments.genrm_environment_w_fact.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
     "nemo_rl.environments.genrm_environment_w_fact1.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
+    "nemo_rl.environments.genrm_environment_w_fact2.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
+    "nemo_rl.environments.genrm_environment_w_error.TwoStageErrorDetectionEnvironment": PY_EXECUTABLES.SYSTEM,
     "nemo_rl.environments.genrm_environment_3stages.ThreeStageGenRMEnvironment": PY_EXECUTABLES.SYSTEM,
+    "nemo_rl.environments.binary_genrm_environment_w_fact.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
+    "nemo_rl.environments.binary_genrm_environment_w_fact3.TwoStageFactCheckEnvironment": PY_EXECUTABLES.SYSTEM,
+    "nemo_rl.environments.binary_genrm_environment.GenRMEnvironment": PY_EXECUTABLES.SYSTEM,
 }
 
 

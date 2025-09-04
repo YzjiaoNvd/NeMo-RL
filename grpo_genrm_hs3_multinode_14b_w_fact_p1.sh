@@ -17,15 +17,17 @@ MODEL_NAME="qwen3_14b"
 #MODEL="Qwen/Qwen2.5-14B-Instruct"
 #MODEL_NAME="qwen25_14b"
 
+
 ACT_CKPT=True
 CPU_OFFLOAD=True
 TP=8
 project_name="yizhu_rlhf"
-lr=2e-8
+lr=5e-7
 temp=1
 grpo_bs=256
 prompts_per_step=128
-rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
+#rollouts_per_prompt=$((8 * NUM_ACTOR_NODES))
+rollouts_per_prompt=8
 kl=0.001
 reward="r0"
 data_version="_base" # 
@@ -80,7 +82,7 @@ COMMAND="cd ${GPFS} && ulimit -c 0 && uv run examples/run_grpo_genrm_w_fact1.py 
     policy.optimizer.kwargs.lr=${lr} \
     policy.optimizer.kwargs.weight_decay=0 \
     policy.generation.temperature=${temp} \
-    policy.generation.vllm_cfg.gpu_memory_utilization=0.8 \
+    policy.generation.vllm_cfg.gpu_memory_utilization=0.95 \
     data.dataset_name="hs3" \
     ++env.genrm.reward_design=${reward} "
 
@@ -94,7 +96,7 @@ MOUNTS="${MOUNTS}" \
 sbatch \
     --nodes=${NUM_ACTOR_NODES} \
     --account=llmservice_modelalignment_sft \
-    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${lr}_${reward}${data_version}_w_fact1 \
+    --job-name=grpo_genrm_hs3_${MODEL_NAME}_${lr}_${rollouts_per_prompt}_${reward}${data_version}_w_fact1 \
     --partition=batch_block1 \
     --time=4:00:00 \
     --gres=gpu:8 \

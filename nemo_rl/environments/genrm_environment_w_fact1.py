@@ -13,6 +13,8 @@ from nemo_rl.environments.interfaces import (
     EnvironmentInterface,
     EnvironmentReturn,
 )
+from nemo_rl.environments.genrm_environment_base import distance_abs
+
 
 # ========================= STAGE 1: FACT-CHECKING =========================
 FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Your task is to evaluate the factual accuracy of two responses by identifying and verifying specific factual claims.
@@ -34,18 +36,18 @@ FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Your task is to eval
 **Required Output Format:**
 
 [Fact Checking for Response 1]
-(1) Factual Claim: [exact text from response] | Status: [Correct/Wrong/Unknown] | Correction: [provide accurate information if wrong]
+(1) Factual Claim: [a short sentence or phrase] | Status: [Correct/Wrong/Unknown] | Correction: [provide accurate information if wrong]
 [Continue for all factual claims found]
 [End of Fact Checking for Response 1]
 
 [Fact Checking for Response 2]
-(1) Factual Claim: [exact text from response] | Status: [Correct/Wrong/Unknown] | Correction: [provide accurate information if wrong]
+(1) Factual Claim: [a short sentence or phrase] | Status: [Correct/Wrong/Unknown] | Correction: [provide accurate information if wrong]
 [Continue for all factual claims found]
 [End of Fact Checking for Response 2]
 
 **Example:**
 [Fact Checking for Response 1]
-(1) Factual Claim: 1990 | Status: Correct
+(1) Factual Claim: the company was found in 1990 | Status: Correct
 (2) Factual Claim: the capital of China is Shanghai | Status: Wrong | Correction: the capital of China is Beijing
 [End of Fact Checking for Response 1]
 
@@ -217,6 +219,7 @@ def parse_fact_checking_response(response: str, num_responses: int = 2) -> str:
     except Exception as e:
         return False, "No valid fact checking results."
 
+'''
 def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, list, Optional[str], str]:
     try:
         # Extract individual scores using updated format
@@ -254,6 +257,64 @@ def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, lis
         
     except Exception as e:
         return False, [], None, f"Scoring parse error: {str(e)}"
+'''
+
+def parse_scoring_response(assistant_response: str, num_responses: int) -> tuple[bool, Optional[list], Optional[str], str]:
+    """
+    Validate the strict format and extract scores.
+    Returns: (is_valid_format, individual_scores, preference_ranking, error_message)
+    """
+    if num_responses == 1:
+        # Expected format: "[The Begin of Individual Scores]\n\\boxed{x} \n[The End of Individual Scores]\n"
+        pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        match = re.search(pattern, assistant_response, re.DOTALL)
+        
+        if not match:
+            return False, [], None, "Format violation: Expected '[The Begin of Individual Scores]\\n\\\\boxed{x} \\n[The End of Individual Scores]\\n' for single response"
+        
+        score_content = match.group(1).strip()
+        # For single response, should be just one score
+        if ',' in score_content:
+            return False, [], None, "Format violation: Single response should contain only one score, found comma"
+        
+        return True, [score_content], None, ""
+        
+    elif num_responses == 2:
+        # Expected format: "[The Begin of Individual Scores]\n\\boxed{x, y} \n[The End of Individual Scores]\n[The Begin of Ranking Score]\n\\boxed{z} \n[The End of Ranking Score]"
+        
+        # Check individual scores section
+        individual_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        individual_match = re.search(individual_pattern, assistant_response, re.DOTALL)
+        
+        if not individual_match:
+            return False, [], None, "Format violation: Missing or incorrect '[The Begin of Individual Scores]\\n\\\\boxed{x, y} \\n[The End of Individual Scores]' section"
+        
+        # Check ranking score section
+        ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
+        ranking_match = re.search(ranking_pattern, assistant_response, re.DOTALL)
+        
+        if not ranking_match:
+            return False, [], None, "Format violation: Missing or incorrect '[The Begin of Ranking Score]\\n\\\\boxed{z} \\n[The End of Ranking Score]' section"
+        
+        # Extract individual scores
+        scores_content = individual_match.group(1).strip()
+        individual_scores = [score.strip() for score in scores_content.split(',')]
+        
+        # For two responses, should have exactly two scores
+        if len(individual_scores) != 2:
+            return False, [], None, f"Format violation: Expected exactly 2 individual scores, found {len(individual_scores)}"
+        
+        # Extract preference ranking
+        preference_content = ranking_match.group(1).strip()
+        # Preference ranking should be a single value
+        if ',' in preference_content:
+            return False, [], None, "Format violation: Preference ranking should be a single value, found comma"
+        
+        return True, individual_scores, preference_content, ""
+    
+    else:
+        return False, [], None, f"Unsupported number of responses: {num_responses}"
+
 
 
 
@@ -265,7 +326,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
     
     def __init__(self, cfg: dict):
         self.cfg = cfg
-        self.format_penalty = cfg.get("format_penalty", -20)
+        self.format_penalty = cfg.get("format_penalty", -100)
         self.factcheck_bonus_multiplier = cfg.get("factcheck_bonus_multiplier", 0.0)
         logging.basicConfig(level=logging.INFO)
     
@@ -377,27 +438,14 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         return reward, obs, updated_metadata
 
 
-
+    '''
     def _process_scoring_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
         """Process scoring stage with extensive debugging."""
-        '''
-        print(f"\n[SCORING STAGE DEBUG] Starting scoring stage")
-        print(f"  Response length: {len(response)}")
-        print(f"  Response preview: {response}...")
-        print(f"  Metadata num_responses: {metadata['num_responses']}")
-        print(f"  Metadata helpfulness_1: {metadata.get('helpfulness_1')}")
-        print(f"  Metadata helpfulness_2: {metadata.get('helpfulness_2')}")
-        print(f"  Metadata preference_ranking: {metadata.get('preference_ranking')}")
-        '''
         # Parse scoring response (still need this for reward calculation)
         is_valid, scores, ranking, error_msg = parse_scoring_response(
             response, metadata["num_responses"]
         )
-        '''
-        print(f"  Parse results: is_valid={is_valid}")
-        print(f"  Extracted scores: {scores}")
-        print(f"  Extracted ranking: {ranking}")
-        '''
+
         if error_msg:
             print(f"  Parse error: {error_msg}")
         
@@ -469,6 +517,64 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             "content": f"<environment>Two-stage completed. Final reward: {final_reward} (breakdown: {', '.join(reward_breakdown)})</environment>",
         }
         return float(final_reward), obs, None  # Terminate episode
+    '''
+
+    def _process_scoring_stage(self, response: str, metadata: TwoStageMetadata) -> Tuple[float, dict, TwoStageMetadata]:
+        """Process scoring stage with extensive debugging."""
+        '''
+        print(f"\n[SCORING STAGE DEBUG] Starting scoring stage")
+        print(f"  Response length: {len(response)}")
+        print(f"  Response preview: {response}...")
+        print(f"  Metadata num_responses: {metadata['num_responses']}")
+        print(f"  Metadata helpfulness_1: {metadata.get('helpfulness_1')}")
+        print(f"  Metadata helpfulness_2: {metadata.get('helpfulness_2')}")
+        print(f"  Metadata preference_ranking: {metadata.get('preference_ranking')}")
+        '''
+        # Parse scoring response (still need this for reward calculation)
+        is_valid, individual_scores, preference_ranking, error_msg = parse_scoring_response(
+            response, metadata["num_responses"]
+        )
+
+        if error_msg:
+            print(f"  Parse error: {error_msg}")
+        
+        if not is_valid:
+            print(f"[SCORING STAGE] Parse error: {error_msg}")
+            obs = {
+                "role": "environment",
+                "content": f"<environment>Scoring stage format error: {error_msg}</environment>"
+            }
+            return float(self.format_penalty), obs, None
+        
+        # Calculate base reward from scoring accuracy (no fact-checking modifier)
+        reward = self.format_penalty
+        try:
+            if metadata["num_responses"] == 1:
+                if metadata["helpfulness_1"] is not None and individual_scores:
+                    reward = - distance_abs(individual_scores[0], metadata["helpfulness_1"])
+                    
+            elif metadata["num_responses"] == 2:
+                # Calculate distance for both individual scores
+                if metadata["helpfulness_1"] is not None and individual_scores and len(individual_scores) == 2 and metadata["preference_ranking"] is not None and preference_ranking:
+                    reward = - distance_abs(individual_scores[0], metadata["helpfulness_1"])  - distance_abs(individual_scores[1], metadata["helpfulness_2"]) - distance_abs(preference_ranking, metadata["preference_ranking"])
+                
+        except Exception as e:
+
+            print(f"[SCORING STAGE] Score parsing error: {e}")
+            print(f"  Scores that failed to parse: {scores}")
+            obs = {
+                "role": "environment",
+                "content": f"<environment>Score parsing error: {e}</environment>"
+            }
+            return float(self.format_penalty), obs, None
+
+        
+        obs = {
+            "role": "environment",
+            "content": f"<environment>Two-stage completed. Final reward: {reward}</environment>",
+        }
+        return float(reward), obs, None  # Terminate episode
+
 
 
 

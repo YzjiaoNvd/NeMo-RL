@@ -12,6 +12,114 @@ from nemo_rl.environments.interfaces import (
     EnvironmentReturn,
 )
 
+
+
+def parse_score_value(score_str: str) -> Optional[int]:
+    """Parse a score value from a string, handling various formats."""
+    if not score_str:
+        return None
+        
+    score_str = score_str.strip()
+    
+    # Try direct conversion first
+    try:
+        return int(score_str)
+    except ValueError:
+        pass
+    
+    # Try to extract the first number found
+    match = re.search(r'(\d+)', score_str)
+    if match:
+        try:
+            return int(match.group(1))
+        except ValueError:
+            pass
+            
+    return None
+
+    
+def distance_abs(predicted: Any, ground_truth: Any) -> int:
+    """Calculate absolute distance between predicted and ground truth."""
+    try:
+        # Handle None values
+        if predicted is None or ground_truth is None:
+            return 100
+        
+        # Convert to integers if they're strings
+        if isinstance(predicted, str):
+            predicted = parse_score_value(predicted)
+            if predicted is None:
+                return 100
+                
+        if isinstance(ground_truth, str):
+            ground_truth = parse_score_value(ground_truth)
+            if ground_truth is None:
+                return 100
+        
+        # Calculate distance
+        return abs(int(predicted) - int(ground_truth))
+    except Exception as e:
+        logging.error(f"Error calculating distance: {e}, predicted: {predicted}, ground_truth: {ground_truth}")
+        return 100
+
+
+def validate_format_and_extract(assistant_response: str, num_responses: int) -> tuple[bool, Optional[list], Optional[str], str]:
+    """
+    Validate the strict format and extract scores.
+    Returns: (is_valid_format, individual_scores, preference_ranking, error_message)
+    """
+    if num_responses == 1:
+        # Expected format: "[The Begin of Individual Scores]\n\\boxed{x} \n[The End of Individual Scores]\n"
+        pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        match = re.search(pattern, assistant_response, re.DOTALL)
+        
+        if not match:
+            return False, None, None, "Format violation: Expected '[The Begin of Individual Scores]\\n\\\\boxed{x} \\n[The End of Individual Scores]\\n' for single response"
+        
+        score_content = match.group(1).strip()
+        # For single response, should be just one score
+        if ',' in score_content:
+            return False, None, None, "Format violation: Single response should contain only one score, found comma"
+        
+        return True, [score_content], None, ""
+        
+    elif num_responses == 2:
+        # Expected format: "[The Begin of Individual Scores]\n\\boxed{x, y} \n[The End of Individual Scores]\n[The Begin of Ranking Score]\n\\boxed{z} \n[The End of Ranking Score]"
+        
+        # Check individual scores section
+        individual_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        individual_match = re.search(individual_pattern, assistant_response, re.DOTALL)
+        
+        if not individual_match:
+            return False, None, None, "Format violation: Missing or incorrect '[The Begin of Individual Scores]\\n\\\\boxed{x, y} \\n[The End of Individual Scores]' section"
+        
+        # Check ranking score section
+        ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
+        ranking_match = re.search(ranking_pattern, assistant_response, re.DOTALL)
+        
+        if not ranking_match:
+            return False, None, None, "Format violation: Missing or incorrect '[The Begin of Ranking Score]\\n\\\\boxed{z} \\n[The End of Ranking Score]' section"
+        
+        # Extract individual scores
+        scores_content = individual_match.group(1).strip()
+        individual_scores = [score.strip() for score in scores_content.split(',')]
+        
+        # For two responses, should have exactly two scores
+        if len(individual_scores) != 2:
+            return False, None, None, f"Format violation: Expected exactly 2 individual scores, found {len(individual_scores)}"
+        
+        # Extract preference ranking
+        preference_content = ranking_match.group(1).strip()
+        # Preference ranking should be a single value
+        if ',' in preference_content:
+            return False, None, None, "Format violation: Preference ranking should be a single value, found comma"
+        
+        return True, individual_scores, preference_content, ""
+    
+    else:
+        return False, None, None, f"Unsupported number of responses: {num_responses}"
+
+
 class GenRMEnvironmentMetadata(TypedDict):
     num_responses: int
     helpfulness_1: Optional[int]
@@ -57,113 +165,6 @@ class GenRMEnvironment(EnvironmentInterface):
             i += 1
 
         return None
-
-    def parse_score_value(self, score_str: str) -> Optional[int]:
-        """Parse a score value from a string, handling various formats."""
-        if not score_str:
-            return None
-            
-        score_str = score_str.strip()
-        
-        # Try direct conversion first
-        try:
-            return int(score_str)
-        except ValueError:
-            pass
-        
-        # Try to extract the first number found
-        match = re.search(r'(\d+)', score_str)
-        if match:
-            try:
-                return int(match.group(1))
-            except ValueError:
-                pass
-                
-        return None
-
-    def distance_abs(self, predicted: Any, ground_truth: Any) -> int:
-        """Calculate absolute distance between predicted and ground truth."""
-        try:
-            # Handle None values
-            if predicted is None or ground_truth is None:
-                return 100
-            
-            # Convert to integers if they're strings
-            if isinstance(predicted, str):
-                predicted = self.parse_score_value(predicted)
-                if predicted is None:
-                    return 100
-                    
-            if isinstance(ground_truth, str):
-                ground_truth = self.parse_score_value(ground_truth)
-                if ground_truth is None:
-                    return 100
-            
-            # Calculate distance
-            return abs(int(predicted) - int(ground_truth))
-        except Exception as e:
-            logging.error(f"Error calculating distance: {e}, predicted: {predicted}, ground_truth: {ground_truth}")
-            return 100
-
-
-    
-    
-
-    def validate_format_and_extract(self, assistant_response: str, num_responses: int) -> tuple[bool, Optional[list], Optional[str], str]:
-        """
-        Validate the strict format and extract scores.
-        Returns: (is_valid_format, individual_scores, preference_ranking, error_message)
-        """
-        if num_responses == 1:
-            # Expected format: "[The Begin of Individual Scores]\n\\boxed{x} \n[The End of Individual Scores]\n"
-            pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
-            match = re.search(pattern, assistant_response, re.DOTALL)
-            
-            if not match:
-                return False, None, None, "Format violation: Expected '[The Begin of Individual Scores]\\n\\\\boxed{x} \\n[The End of Individual Scores]\\n' for single response"
-            
-            score_content = match.group(1).strip()
-            # For single response, should be just one score
-            if ',' in score_content:
-                return False, None, None, "Format violation: Single response should contain only one score, found comma"
-            
-            return True, [score_content], None, ""
-            
-        elif num_responses == 2:
-            # Expected format: "[The Begin of Individual Scores]\n\\boxed{x, y} \n[The End of Individual Scores]\n[The Begin of Ranking Score]\n\\boxed{z} \n[The End of Ranking Score]"
-            
-            # Check individual scores section
-            individual_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
-            individual_match = re.search(individual_pattern, assistant_response, re.DOTALL)
-            
-            if not individual_match:
-                return False, None, None, "Format violation: Missing or incorrect '[The Begin of Individual Scores]\\n\\\\boxed{x, y} \\n[The End of Individual Scores]' section"
-            
-            # Check ranking score section
-            ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
-            ranking_match = re.search(ranking_pattern, assistant_response, re.DOTALL)
-            
-            if not ranking_match:
-                return False, None, None, "Format violation: Missing or incorrect '[The Begin of Ranking Score]\\n\\\\boxed{z} \\n[The End of Ranking Score]' section"
-            
-            # Extract individual scores
-            scores_content = individual_match.group(1).strip()
-            individual_scores = [score.strip() for score in scores_content.split(',')]
-            
-            # For two responses, should have exactly two scores
-            if len(individual_scores) != 2:
-                return False, None, None, f"Format violation: Expected exactly 2 individual scores, found {len(individual_scores)}"
-            
-            # Extract preference ranking
-            preference_content = ranking_match.group(1).strip()
-            # Preference ranking should be a single value
-            if ',' in preference_content:
-                return False, None, None, "Format violation: Preference ranking should be a single value, found comma"
-            
-            return True, individual_scores, preference_content, ""
-        
-        else:
-            return False, None, None, f"Unsupported number of responses: {num_responses}"
     
     def step(self, message_log_batch: list[list[dict[str, str]]], metadata: list[GenRMEnvironmentMetadata],) -> EnvironmentReturn:
         """Evaluate GenRM predictions and return rewards."""
@@ -179,7 +180,7 @@ class GenRMEnvironment(EnvironmentInterface):
                     assistant_response = msg["content"]
                     break
             
-            is_valid_format, individual_scores, preference_ranking, error_message = self.validate_format_and_extract(
+            is_valid_format, individual_scores, preference_ranking, error_message = validate_format_and_extract(
                 assistant_response, meta["num_responses"]
             )
             # Validate format and extract scores
@@ -206,12 +207,12 @@ class GenRMEnvironment(EnvironmentInterface):
                 try:
                     if meta["num_responses"] == 1:
                         if meta["helpfulness_1"] is not None and individual_scores:
-                            reward = -self.distance_abs(individual_scores[0], meta["helpfulness_1"])
+                            reward = - distance_abs(individual_scores[0], meta["helpfulness_1"])
                     
                     elif meta["num_responses"] == 2:
                         # Calculate distance for both individual scores
                         if meta["helpfulness_1"] is not None and individual_scores and len(individual_scores) == 2 and meta["preference_ranking"] is not None and preference_ranking:
-                            reward = - self.distance_abs(individual_scores[0], meta["helpfulness_1"])  - self.distance_abs(individual_scores[1], meta["helpfulness_2"]) - self.distance_abs(preference_ranking, meta["preference_ranking"])
+                            reward = - distance_abs(individual_scores[0], meta["helpfulness_1"])  - distance_abs(individual_scores[1], meta["helpfulness_2"]) - distance_abs(preference_ranking, meta["preference_ranking"])
                 
                 except Exception as e:
                     logging.error(f"Error processing response: {e}")

@@ -19,8 +19,10 @@ from nemo_rl.data.datasets import AllTaskProcessedDataset, eval_collate_fn
 from nemo_rl.data.hf_datasets.reward_benchmarks import (
     JudgeBenchDataset,
     RMBenchDataset,
+    RewardBenchDataset,
     RewardBench2Dataset,
     HelpSteer3LocalDataset,
+    RMBDataset,
 )
 from nemo_rl.data.interfaces import DatumSpec, TaskDataSpec
 from nemo_rl.distributed.batched_data_dict import BatchedDataDict
@@ -52,18 +54,7 @@ def genrm_eval_data_processor(
     idx: int,
 ) -> DatumSpec:
     """Process evaluation data for GenRM format."""
-    # Debug: Print the datum_dict to see what fields are available
-    if idx < 3:  # Only print first few examples
-        print(f"\n[DEBUG] Example {idx} datum_dict keys: {list(datum_dict.keys())}")
-        for key in ["prompt", "num_responses", "label_1", "label_2", "preference", "ground_truth"]:
-            if key in datum_dict:
-                value = datum_dict[key]
-                if isinstance(value, str) and len(value) > 100:
-                    print(f"  {key}: {value}...")
-                else:
-                    print(f"  {key}: {value}")
     
-        # The datum_dict already contains the formatted prompt from format_judgebench_example
     prompt = datum_dict.get("prompt", "")
     
     message_log = []
@@ -86,20 +77,7 @@ def genrm_eval_data_processor(
     
     
     # Extract metadata - make sure we're getting the actual values
-    metadata = {
-        "num_responses": datum_dict.get("num_responses", 2),
-        "helpfulness_1": datum_dict.get("label_1"),
-        "helpfulness_2": datum_dict.get("label_2"),
-        "preference_ranking": datum_dict.get("preference"),
-        "ground_truth": datum_dict.get("ground_truth"),
-        "context": datum_dict.get("context", ""),
-        "response1": datum_dict.get("response1", ""),
-        "response2": datum_dict.get("response2", ""),
-    }
-            
-    for key in ["domain", "sample_id", "chosen_style_idx", "rejected_style_idx"]:
-        if key in datum_dict.keys():
-            metadata[key] = datum_dict.get(key)
+    metadata = datum_dict.copy()
 
     # Debug: Print extracted metadata
     if idx < 1:
@@ -124,7 +102,7 @@ def parse_args():
     parser.add_argument(
         "--dataset", 
         type=str, 
-        choices=["judgebench", "rmbench", "rewardbench2", "hs3local", "hs3train"],
+        choices=["judgebench", "rmbench", "rewardbench2", "rewardbench", "hs3local", "hs3train", "rmb"],
         default=None,
         help="Dataset to evaluate on (overrides config)"
     )
@@ -142,8 +120,12 @@ def setup_data(tokenizer, data_config, dataset_name):
         dataset_loader = JudgeBenchDataset()
     elif dataset_name == "rmbench":
         dataset_loader = RMBenchDataset()
+    elif dataset_name == "rewardbench":
+        dataset_loader = RewardBenchDataset()
     elif dataset_name == "rewardbench2":
         dataset_loader = RewardBench2Dataset()
+    elif dataset_name == "rmb":
+        dataset_loader = RMBDataset()
     elif dataset_name == "hs3local":
         dataset_loader = HelpSteer3LocalDataset()
     elif dataset_name == "hs3train":
@@ -328,9 +310,9 @@ def calculate_metrics(results):
     
     for result in results:
         total_rankings += 1
-        if "predicted_ranking" in result and result["metadata"].get("preference_ranking") is not None:
+        if "predicted_ranking" in result and result["metadata"].get("preference") is not None:
             # Convert preference to expected ranking
-            true_pref = result["metadata"]["preference_ranking"]
+            true_pref = result["metadata"]["preference"]
             extracted_pred_rank = result["predicted_ranking"]
             pred_rank = 0 if extracted_pred_rank <= 3 else 1
                 

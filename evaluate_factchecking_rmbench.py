@@ -9,6 +9,7 @@ from tqdm import tqdm
 import multiprocessing as mp
 from functools import partial
 from tqdm import tqdm 
+import random
 
 def setup_llm_client(api_key):
     """
@@ -59,7 +60,7 @@ VERDICT: [HIT or MISS]
             ],
             temperature=0.6,  # Low temperature for consistent evaluation
             top_p=0.9,
-            max_tokens=500,
+            max_tokens=5000,
         )
         
         response_text = completion.choices[0].message.content
@@ -242,20 +243,23 @@ def process_single_file(args):
     Worker function to process a single rmbench file
     
     Args:
-        args (tuple): (rmbench_file, chat_filtered_file, mode, api_key, rate_limit_delay)
+        args (tuple): (rmbench_file, chat_filtered_file, mode, api_keys, rate_limit_delay, worker_id)
     
     Returns:
         tuple: (step_id, filename, results)
     """
-    rmbench_file, chat_filtered_file, mode, api_key, rate_limit_delay = args
+    rmbench_file, chat_filtered_file, mode, api_keys, rate_limit_delay, worker_id = args
     
     filename = os.path.basename(rmbench_file)
     step_id = filename.replace('_rmbench_results.json', '')
     
-    # Setup LLM client if needed (each process needs its own client)
+    # Setup LLM client if needed (each process gets its own API key)
     llm_client = None
-    if mode == "llm" and api_key:
+    if mode == "llm" and api_keys:
+        # Use round-robin to assign API key based on worker_id
+        api_key = api_keys[worker_id % len(api_keys)]
         llm_client = setup_llm_client(api_key)
+        print(f"Worker {worker_id} using API key ending in ...{api_key[-8:]}")
     
     delete_correct_lines = "fact1" in rmbench_file
 
@@ -293,7 +297,7 @@ def print_evaluation_results(results, show_reasoning=False):
         print(f"  Factcheck snippet: {detail['factcheck_response_snippet']}")
         print()
 
-def process_folder(folder_path, chat_filtered_file, mode="exact", api_key=None, rate_limit_delay=1.0, num_processes=None):
+def process_folder(folder_path, chat_filtered_file, mode="exact", api_keys=None, rate_limit_delay=0.1, num_processes=None):
     """
     Process all step_id_rmbench_results.json files in a folder using multiprocessing
     
@@ -301,7 +305,7 @@ def process_folder(folder_path, chat_filtered_file, mode="exact", api_key=None, 
         folder_path (str): Path to folder containing the rmbench files
         chat_filtered_file (str): Path to chat_filtered.json
         mode (str): "exact" for exact word matching or "llm" for LLM-as-judge
-        api_key (str): API key for NVIDIA (required for LLM mode)
+        api_keys (list): List of API keys for NVIDIA (required for LLM mode)
         rate_limit_delay (float): Delay between LLM API calls
         num_processes (int): Number of processes to use (None for CPU count)
     
@@ -314,9 +318,9 @@ def process_folder(folder_path, chat_filtered_file, mode="exact", api_key=None, 
         print(f"Error: {chat_filtered_file} not found")
         return None
     
-    # Validate API key for LLM mode
-    if mode == "llm" and not api_key:
-        print("Error: API key is required for LLM mode")
+    # Validate API keys for LLM mode
+    if mode == "llm" and not api_keys:
+        print("Error: API keys are required for LLM mode")
         return None
     
     # Find all files matching the pattern
@@ -327,17 +331,29 @@ def process_folder(folder_path, chat_filtered_file, mode="exact", api_key=None, 
         print(f"No files matching pattern '*_rmbench_results.json' found in {folder_path}")
         return None
     
-    # Determine number of processes
+    # Determine number of processes - optimize based on number of API keys
     if num_processes is None:
-        num_processes = min(mp.cpu_count(), len(rmbench_files))
+        if mode == "llm" and api_keys:
+            # Use multiples of API keys for better distribution
+            num_processes = min(len(api_keys) * 2, mp.cpu_count(), len(rmbench_files))
+        else:
+            num_processes = min(mp.cpu_count(), len(rmbench_files))
     
     print(f"Processing {len(rmbench_files)} files using {num_processes} processes...")
+    if mode == "llm":
+        print(f"Using {len(api_keys)} API keys with {rate_limit_delay}s delay")
     
     # Prepare arguments for worker processes
-    worker_args = [
-        (rmbench_file, chat_filtered_file, mode, api_key, rate_limit_delay)
-        for rmbench_file in rmbench_files
-    ]
+    worker_args = []
+    for i, rmbench_file in enumerate(rmbench_files):
+        worker_args.append((
+            rmbench_file, 
+            chat_filtered_file, 
+            mode, 
+            api_keys, 
+            rate_limit_delay,
+            i  # worker_id for API key selection
+        ))
     
     all_results = {}
     summary_stats = []
@@ -411,14 +427,28 @@ def main():
     Main function to run the evaluation on folder with multiprocessing
     """
     # Configuration - update these paths as needed
-    folder_path = '/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_qwen3_14b_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_64_num_prompts_128_r0_fact_base/outputs'
+    folder_path = '/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_qwen3_14b_lr_2e-7_temp_1_kl_0.001_grpo_bs_256_rollout_64_num_prompts_128_r0_fact_base/outputs'
     chat_filtered_file = '/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/datasets/fact_checking/rmbench_chat_filtered.json'
     
+    # Multiple API keys for faster processing
+    API_KEYS = [
+        "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",
+        "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",
+        "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",
+        "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",
+        "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",
+        "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",
+        "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",
+        "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",
+        "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",
+        "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",
+        "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"
+    ]
+    
     # Configuration for evaluation mode
-    EVALUATION_MODE = "exact"  # llm or exact
-    API_KEY = "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"  # Replace with your actual API key
-    RATE_LIMIT_DELAY = 0.0  # Reduced delay for multiprocessing (each process will have delay)
-    NUM_PROCESSES = None  # None to use all available CPUs, or specify a number
+    EVALUATION_MODE = "llm"  # llm or exact
+    RATE_LIMIT_DELAY = 0.00  # Reduced delay since we have multiple API keys
+    NUM_PROCESSES = None  # None to use optimized number based on API keys
     
     # Check if chat_filtered file exists
     if not os.path.exists(chat_filtered_file):
@@ -427,10 +457,10 @@ def main():
     
     # Process folder with multiprocessing
     if EVALUATION_MODE == "llm":
-        print("Using LLM-as-judge mode with multiprocessing")
+        print("Using LLM-as-judge mode with multiple API keys")
         folder_results = process_folder(
             folder_path, chat_filtered_file, 
-            mode="llm", api_key=API_KEY, 
+            mode="llm", api_keys=API_KEYS, 
             rate_limit_delay=RATE_LIMIT_DELAY,
             num_processes=NUM_PROCESSES
         )

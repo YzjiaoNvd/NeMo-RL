@@ -2,10 +2,17 @@
 
 set -e
 
+# Usage: ./convert_dcp_to_hf.sh [CHECKPOINT_DIR] [THRESHOLD] [OUTPUT_BASE_DIR] [MODE]
+# CHECKPOINT_DIR: Path to the checkpoint directory
+# THRESHOLD: Minimum step number to process (default: 0)
+# OUTPUT_BASE_DIR: Output directory (default: ${CHECKPOINT_DIR}/HF)
+# MODE: "all" (default), "latest"/"last" - convert all checkpoints or only the last one
+
 # Input arguments
 CHECKPOINT_DIR="$1"
 THRESHOLD="${2:-0}"
 OUTPUT_BASE_DIR="${3:-${CHECKPOINT_DIR}/HF}"
+MODE="${4:-latest}"  # "all" or "latest"/"last"
 
 # Container configuration
 GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"
@@ -13,13 +20,17 @@ CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_
 
 # SLURM configuration
 ACCOUNT="llmservice_modelalignment_sft"
-PARTITION="batch_block1"
+PARTITION="batch_short,interactive"
 TIME_LIMIT="01:00:00"
 NODES=1
 CPUS_PER_TASK=8
 GPUS_PER_NODE=1
 
-
+# Validate mode
+if [ "$MODE" != "all" ] && [ "$MODE" != "latest" ] && [ "$MODE" != "last" ]; then
+    echo "Error: MODE must be 'all', 'latest', or 'last', got: $MODE"
+    exit 1
+fi
 
 # Create output directories
 mkdir -p "$OUTPUT_BASE_DIR"
@@ -29,6 +40,7 @@ echo "Submitting DCP to HuggingFace conversion jobs"
 echo "Checkpoint directory: $CHECKPOINT_DIR"
 echo "Step threshold: $THRESHOLD"
 echo "Output directory: $OUTPUT_BASE_DIR"
+echo "Mode: $MODE"
 echo "Container image: $CONTAINER"
 # ... (rest of echo statements)
 echo "----------------------------------------"
@@ -36,6 +48,38 @@ echo "----------------------------------------"
 # Track submitted jobs
 SUBMITTED_JOBS=()
 SKIPPED_STEPS=()
+
+# Find step directories
+STEP_DIRS=$(find ${CHECKPOINT_DIR} -type d -name "step_*" 2>/dev/null)
+
+if [ -z "$STEP_DIRS" ]; then
+    echo "No checkpoint directories found!"
+    exit 1
+fi
+
+# Sort step directories and filter by threshold
+SORTED_STEP_DIRS=$(echo "$STEP_DIRS" | while read dir; do
+    step_num=$(basename "$dir" | grep -Eo '[0-9]+$')
+    if [ ! -z "$step_num" ] && [ "$step_num" -gt "$THRESHOLD" ]; then
+        echo "$step_num $dir"
+    fi
+done | sort -n | awk '{print $2}')
+
+if [ -z "$SORTED_STEP_DIRS" ]; then
+    echo "No valid checkpoints found above threshold $THRESHOLD"
+    exit 1
+fi
+
+# Choose directories based on mode
+if [ "$MODE" = "latest" ] || [ "$MODE" = "last" ]; then
+    # Get only the latest step
+    STEP_DIRS_TO_PROCESS=$(echo "$SORTED_STEP_DIRS" | tail -1)
+    echo "Processing only the last checkpoint..."
+else
+    # Process all steps
+    STEP_DIRS_TO_PROCESS="$SORTED_STEP_DIRS"
+    echo "Processing all checkpoints..."
+fi
 
 # Function to submit a single conversion job
 submit_conversion_job() {
@@ -92,59 +136,53 @@ EOF
 }
 
 # Process each step directory
-for step_dir in "$CHECKPOINT_DIR"/step_*; do
-    if [ -d "$step_dir" ]; then
-        # Extract step number from directory name (anchor to end of string)
-        step_basename=$(basename "$step_dir")
-        step_num=$(echo "$step_basename" | grep -Eo '[0-9]+$')
-        
-        if [ ! -z "$step_num" ] && [ "$step_num" -gt "$THRESHOLD" ]; then
-            echo "Processing directory: $step_dir"
-            echo "Step number: $step_num"
-            
-            # Define host paths
-            config_path="$step_dir/config.yaml"
-            dcp_weights_path="$step_dir/policy/weights"
-            hf_output_path="$OUTPUT_BASE_DIR/step_$step_num"
-            
-            # Validate required files exist
-            if [ ! -f "$config_path" ]; then
-                echo "  ❌ Error: config.yaml not found at $config_path"
-                SKIPPED_STEPS+=("step_$step_num (missing config.yaml)")
-                continue
-            fi
-            
-            if [ ! -d "$dcp_weights_path" ]; then
-                echo "  ❌ Error: DCP weights directory not found at $dcp_weights_path"
-                SKIPPED_STEPS+=("step_$step_num (missing weights)")
-                continue
-            fi
-            
-            # Check if output already exists
-            if [ -d "$hf_output_path" ]; then
-                echo "  ⚠️  Output directory already exists: $hf_output_path. Skipped."
-                continue
-                #echo "  ⚠️  Output directory already exists: $hf_output_path"
-                #read -p "  Overwrite? (y/N): " -n 1 -r
-                #echo
-                #if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                #    echo "  ⏭️  Skipping step_$step_num"
-                #    SKIPPED_STEPS+=("step_$step_num (already exists, user skipped)")
-                #    continue
-                #else
-                #    echo "  ♻️  Removing existing output directory."
-                #    rm -rf "$hf_output_path"
-                #fi
-            fi
-            
-            # Submit conversion job
-            submit_conversion_job "$step_dir" "$step_num"
-            
-        else
-            if [ ! -z "$step_num" ]; then
-                echo "Skipping $step_basename (step $step_num <= threshold $THRESHOLD)"
-                SKIPPED_STEPS+=("$step_basename (below threshold)")
-            fi
-        fi
+for step_dir in $STEP_DIRS_TO_PROCESS; do
+    step_basename=$(basename "$step_dir")
+    step_num=$(echo "$step_basename" | grep -Eo '[0-9]+$')
+    
+    if [ -z "$step_num" ]; then
+        echo "⚠️  Invalid: $step_basename"
+        continue
     fi
+    
+    echo "Processing directory: $step_dir"
+    echo "Step number: $step_num"
+    
+    # Define host paths
+    config_path="$step_dir/config.yaml"
+    dcp_weights_path="$step_dir/policy/weights"
+    hf_output_path="$OUTPUT_BASE_DIR/step_$step_num"
+    
+    # Validate required files exist
+    if [ ! -f "$config_path" ]; then
+        echo "  ❌ Error: config.yaml not found at $config_path"
+        SKIPPED_STEPS+=("step_$step_num (missing config.yaml)")
+        continue
+    fi
+    
+    if [ ! -d "$dcp_weights_path" ]; then
+        echo "  ❌ Error: DCP weights directory not found at $dcp_weights_path"
+        SKIPPED_STEPS+=("step_$step_num (missing weights)")
+        continue
+    fi
+    
+    # Check if output already exists
+    if [ -d "$hf_output_path" ]; then
+        echo "  ⚠️  Output directory already exists: $hf_output_path. Skipped."
+        continue
+        #echo "  ⚠️  Output directory already exists: $hf_output_path"
+        #read -p "  Overwrite? (y/N): " -n 1 -r
+        #echo
+        #if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        #    echo "  ⏭️  Skipping step_$step_num"
+        #    SKIPPED_STEPS+=("step_$step_num (already exists, user skipped)")
+        #    continue
+        #else
+        #    echo "  ♻️  Removing existing output directory."
+        #    rm -rf "$hf_output_path"
+        #fi
+    fi
+    
+    # Submit conversion job
+    submit_conversion_job "$step_dir" "$step_num"
 done

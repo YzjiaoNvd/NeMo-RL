@@ -16,8 +16,10 @@ from nemo_rl.data.datasets import AllTaskProcessedDataset, eval_collate_fn
 from nemo_rl.data.hf_datasets.reward_benchmarks import (
     JudgeBenchDataset,
     RMBenchDataset,
+    RewardBenchDataset,
     RewardBench2Dataset,
     HelpSteer3LocalDataset,
+    RMBDataset,
 )
 from nemo_rl.data.interfaces import DatumSpec, TaskDataSpec
 from nemo_rl.distributed.batched_data_dict import BatchedDataDict
@@ -64,11 +66,6 @@ def genrm_eval_data_processor(
     response1 = datum_dict.get("response1", "")
     response2 = datum_dict.get("response2", "")
     
-    num_responses = datum_dict.get("num_responses", 2)
-    helpfulness_1 = datum_dict.get("label_1", None)
-    helpfulness_2 = datum_dict.get("label_2", None)
-    preference_ranking = datum_dict.get("preference", None)
-    
     # For GRPO, we always start with the fact-checking stage
     # The environment will handle the transition to scoring stage
     factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
@@ -95,19 +92,7 @@ def genrm_eval_data_processor(
     message_log.append(user_message)
 
     # Extract metadata for two-stage evaluation
-    metadata = {
-        "num_responses": num_responses,
-        "helpfulness_1": helpfulness_1,
-        "helpfulness_2": helpfulness_2,
-        "preference_ranking": preference_ranking,
-        "context": context,
-        "response1": response1,
-        "response2": response2,
-    }
-    
-    for key in ["domain", "sample_id", "chosen_style_idx", "rejected_style_idx"]:
-        if key in datum_dict.keys():
-            metadata[key] = datum_dict.get(key)
+    metadata = datum_dict.copy()
 
     # Debug: Print extracted metadata
     if idx < 3:
@@ -128,7 +113,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run GenRM two-stage evaluation")
     parser.add_argument("--config", type=str, default=None, help="Path to YAML config file")
     parser.add_argument("--dataset", type=str, 
-                       choices=["judgebench", "rmbench", "rewardbench2", "hs3local"],
+                       choices=["judgebench", "rmbench", "rewardbench2", "hs3local", "rewardbench", "rmb"],
                        default=None, help="Dataset to evaluate on")
     args, overrides = parser.parse_known_args()
     return args, overrides
@@ -142,8 +127,10 @@ def setup_data(tokenizer, data_config, dataset_name):
     dataset_loaders = {
         "judgebench": JudgeBenchDataset,
         "rmbench": RMBenchDataset,
+        "rewardbench": RewardBenchDataset,
         "rewardbench2": RewardBench2Dataset,
         "hs3local": HelpSteer3LocalDataset,
+        "rmb": RMBDataset,
     }
     
     if dataset_name not in dataset_loaders:
@@ -299,7 +286,7 @@ def calculate_metrics(results):
     for result in results:
         if result.get("scoring_parse_success", False) and "predicted_ranking" in result:
             total_rankings += 1
-            true_pref = result["metadata"].get("preference_ranking")
+            true_pref = result["metadata"].get("preference")
             if true_pref is not None:
                 pred_pref = 0 if result["predicted_ranking"] <= 3 else 1
                 if pred_pref == true_pref:

@@ -14,6 +14,10 @@ from nemo_rl.environments.interfaces import (
     EnvironmentReturn,
 )
 
+from nemo_rl.environments.genrm_environment_base import distance_abs
+
+
+
 # ========================= STAGE 1: FACT-CHECKING =========================
 
 '''
@@ -37,7 +41,7 @@ FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given tw
 - Factual Errors: [List specific factual errors, or "None identified"]
 - Corrections: [Provide correct information if you know it, or "Unknown"]
 [End of Fact Checking for Response 2]"""
-'''
+
 
 FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and make your answer as brief as possible. 
 
@@ -59,8 +63,28 @@ FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given tw
 - Factual Errors: [List all factual errors (the spans from the original model responses), or "None identified"]
 - Corrections: [Provide correct information if you know it, or "Unknown"]
 [End of Fact Checking for Response 2]"""
+'''
 
+FACTCHECK_STAGE_PROMPT = """You are a fact-checking expert. Analyze the given two responses for factual accuracy. Strictly follow the required output format and make your answer as brief as possible. 
 
+**Task:** Identify any factual errors and provide corrections when you know the accurate information.
+
+**Context:** 
+{context}
+
+**Responses:**
+{responses}
+
+**Output Format:**
+[Fact Checking for Response 1]
+- Factual Errors: [List all factual errors, or "None identified"]
+- Corrections: [Provide correct information if you know it, or "Unknown"]
+[End of Fact Checking for Response 1]
+
+[Fact Checking for Response 2] 
+- Factual Errors: [List all factual errors, or "None identified"]
+- Corrections: [Provide correct information if you know it, or "Unknown"]
+[End of Fact Checking for Response 2]"""
   
 
 # ========================= STAGE 2: SCORING =========================
@@ -132,7 +156,7 @@ Analysis on response 2
 [The End of Individual Scores]
 
 [The Begin of Ranking Score]
-\\boxed{z} 
+\\boxed{z}
 [The End of Ranking Score]
 """
 
@@ -192,8 +216,14 @@ def format_scoring_stage_prompt(context: str, response1: str, response2: Optiona
     '''
     return SCORING_STAGE_PROMPT
 
-# ========================= PARSING UTILITIES =========================
 
+
+    
+
+
+
+
+# ========================= PARSING UTILITIES =========================
 def parse_fact_checking_response(response: str, num_responses: int = 2) -> str:
     """
     Parse fact-checking response and extract structured content.
@@ -223,10 +253,74 @@ def parse_fact_checking_response(response: str, num_responses: int = 2) -> str:
     except Exception as e:
         return False, "No valid fact checking results."
 
+
+
+
+def parse_scoring_response(assistant_response: str, num_responses: int) -> tuple[bool, Optional[list], Optional[str], str]:
+    """
+    Validate the strict format and extract scores.
+    Returns: (is_valid_format, individual_scores, preference_ranking, error_message)
+    """
+    if num_responses == 1:
+        # Expected format: "[The Begin of Individual Scores]\n\\boxed{x} \n[The End of Individual Scores]\n"
+        pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        match = re.search(pattern, assistant_response, re.DOTALL)
+        
+        if not match:
+            return False, [], None, "Format violation: Expected '[The Begin of Individual Scores]\\n\\\\boxed{x} \\n[The End of Individual Scores]\\n' for single response"
+        
+        score_content = match.group(1).strip()
+        # For single response, should be just one score
+        if ',' in score_content:
+            return False, [], None, "Format violation: Single response should contain only one score, found comma"
+        
+        return True, [score_content], None, ""
+        
+    elif num_responses == 2:
+        # Expected format: "[The Begin of Individual Scores]\n\\boxed{x, y} \n[The End of Individual Scores]\n[The Begin of Ranking Score]\n\\boxed{z} \n[The End of Ranking Score]"
+        
+        # Check individual scores section
+        individual_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        individual_match = re.search(individual_pattern, assistant_response, re.DOTALL)
+        
+        if not individual_match:
+            return False, [], None, "Format violation: Missing or incorrect '[The Begin of Individual Scores]\\n\\\\boxed{x, y} \\n[The End of Individual Scores]' section"
+        
+        # Check ranking score section
+        ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
+        ranking_match = re.search(ranking_pattern, assistant_response, re.DOTALL)
+        
+        if not ranking_match:
+            return False, [], None, "Format violation: Missing or incorrect '[The Begin of Ranking Score]\\n\\\\boxed{z} \\n[The End of Ranking Score]' section"
+        
+        # Extract individual scores
+        scores_content = individual_match.group(1).strip()
+        individual_scores = [score.strip() for score in scores_content.split(',')]
+        
+        # For two responses, should have exactly two scores
+        if len(individual_scores) != 2:
+            return False, [], None, f"Format violation: Expected exactly 2 individual scores, found {len(individual_scores)}"
+        
+        # Extract preference ranking
+        preference_content = ranking_match.group(1).strip()
+        # Preference ranking should be a single value
+        if ',' in preference_content:
+            return False, [], None, "Format violation: Preference ranking should be a single value, found comma"
+        
+        return True, individual_scores, preference_content, ""
+    
+    else:
+        return False, [], None, f"Unsupported number of responses: {num_responses}"
+
+
+
+'''
 def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, list, Optional[str], str]:
     try:
         # Extract individual scores using updated format
-        scores_pattern = r"\[The Begin of Individual Scores\]\s*\\boxed\{(\d+,\s*\d+)\}\s*\[The End of Individual Scores\]"
+        # scores_pattern = r"\[The Begin of Individual Scores\]\s*\\boxed\{(\d+,\s*\d+)\}\s*\[The End of Individual Scores\]"
+        scores_pattern = r'\[The Begin of Individual Scores\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Individual Scores\]'
+        
         scores_match = re.search(scores_pattern, response, re.DOTALL | re.IGNORECASE)
         
         if not scores_match:
@@ -244,7 +338,9 @@ def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, lis
         # Extract ranking if two responses
         ranking = None
         if num_responses == 2:
-            ranking_pattern = r"\[The Begin of Ranking Score\]\s*\\boxed\{(\d+)\}\s*\[The End of Ranking Score\]"
+            #ranking_pattern = r"\[The Begin of Ranking Score\]\s*\\boxed\{(\d+)\}\s*\[The End of Ranking Score\]"
+            ranking_pattern = r'\[The Begin of Ranking Score\]\s*\n\s*\\boxed\{([^}]+)\}\s*\n\s*\[The End of Ranking Score\]'
+
             ranking_match = re.search(ranking_pattern, response, re.DOTALL | re.IGNORECASE)
             
             if not ranking_match:
@@ -261,7 +357,7 @@ def parse_scoring_response(response: str, num_responses: int) -> Tuple[bool, lis
     except Exception as e:
         return False, [], None, f"Scoring parse error: {str(e)}"
 
-
+'''
 
 # ========================= TWO-STAGE ENVIRONMENT =========================
 
@@ -271,7 +367,7 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
     
     def __init__(self, cfg: dict):
         self.cfg = cfg
-        self.format_penalty = cfg.get("format_penalty", -20)
+        self.format_penalty = cfg.get("format_penalty", -100)
         self.factcheck_bonus_multiplier = cfg.get("factcheck_bonus_multiplier", 0.0)
         logging.basicConfig(level=logging.INFO)
     
@@ -396,14 +492,10 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
         print(f"  Metadata preference_ranking: {metadata.get('preference_ranking')}")
         '''
         # Parse scoring response (still need this for reward calculation)
-        is_valid, scores, ranking, error_msg = parse_scoring_response(
+        is_valid, individual_scores, preference_ranking, error_msg = parse_scoring_response(
             response, metadata["num_responses"]
         )
-        '''
-        print(f"  Parse results: is_valid={is_valid}")
-        print(f"  Extracted scores: {scores}")
-        print(f"  Extracted ranking: {ranking}")
-        '''
+
         if error_msg:
             print(f"  Parse error: {error_msg}")
         
@@ -416,46 +508,19 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             return float(self.format_penalty), obs, None
         
         # Calculate base reward from scoring accuracy (no fact-checking modifier)
-        base_reward = 0.0
-        reward_breakdown = []
-        
+        reward = self.format_penalty
         try:
             if metadata["num_responses"] == 1:
-                if metadata["helpfulness_1"] is not None and scores and len(scores) > 0:
-                    score_1 = int(scores[0])
-                    distance_1 = abs(score_1 - metadata["helpfulness_1"])
-                    base_reward = -distance_1
-                    reward_breakdown.append(f"single_score_distance: -{distance_1}")
-                    #print(f"  Single response: predicted={score_1}, ground_truth={metadata['helpfulness_1']}, distance={distance_1}")
-                else:
-                    print(f"  Single response: missing data - helpfulness_1={metadata.get('helpfulness_1')}, scores={scores}")
-            
+                if metadata["helpfulness_1"] is not None and individual_scores:
+                    reward = - distance_abs(individual_scores[0], metadata["helpfulness_1"])
+                    
             elif metadata["num_responses"] == 2:
-                if metadata["helpfulness_1"] is not None and metadata["helpfulness_2"] is not None and scores and len(scores) >= 2:
-                    score_1 = int(scores[0])
-                    score_2 = int(scores[1])
-                    distance_1 = abs(score_1 - metadata["helpfulness_1"])
-                    distance_2 = abs(score_2 - metadata["helpfulness_2"])
-                    base_reward = -(distance_1 + distance_2)
-                    reward_breakdown.append(f"score_distances: -{distance_1} + -{distance_2}")
-                    #print(f"  Score 1: predicted={score_1}, ground_truth={metadata['helpfulness_1']}, distance={distance_1}")
-                    #print(f"  Score 2: predicted={score_2}, ground_truth={metadata['helpfulness_2']}, distance={distance_2}")
-                else:
-                    print(f"  Two responses: missing score data - helpfulness_1={metadata.get('helpfulness_1')}, helpfulness_2={metadata.get('helpfulness_2')}, scores={scores}")
+                # Calculate distance for both individual scores
+                if metadata["helpfulness_1"] is not None and individual_scores and len(individual_scores) == 2 and metadata["preference_ranking"] is not None and preference_ranking:
+                    reward = - distance_abs(individual_scores[0], metadata["helpfulness_1"])  - distance_abs(individual_scores[1], metadata["helpfulness_2"]) - distance_abs(preference_ranking, metadata["preference_ranking"])
                 
-                if metadata["preference_ranking"] is not None and ranking:
-                    try:
-                        ranking_int = int(ranking)
-                        ranking_distance = abs(ranking_int - metadata["preference_ranking"])
-                        base_reward -= ranking_distance
-                        reward_breakdown.append(f"ranking_distance: -{ranking_distance}")
-                        #print(f"  Ranking: predicted={ranking_int}, ground_truth={metadata['preference_ranking']}, distance={ranking_distance}")
-                    except ValueError as e:
-                        print(f"  Ranking parse error: {e}, ranking='{ranking}'")
-                else:
-                    print(f"  Two responses: missing ranking data - preference_ranking={metadata.get('preference_ranking')}, ranking={ranking}")
-                        
-        except ValueError as e:
+        except Exception as e:
+
             print(f"[SCORING STAGE] Score parsing error: {e}")
             print(f"  Scores that failed to parse: {scores}")
             obs = {
@@ -465,16 +530,11 @@ class TwoStageFactCheckEnvironment(EnvironmentInterface):
             return float(self.format_penalty), obs, None
 
         
-        # Final reward is just the base accuracy (no fact-checking bonus/penalty)
-        final_reward = base_reward
-        
-        #print(f"  Reward breakdown: {', '.join(reward_breakdown)}")
-        #print(f"  Final reward: {final_reward}")
         obs = {
             "role": "environment",
-            "content": f"<environment>Two-stage completed. Final reward: {final_reward} (breakdown: {', '.join(reward_breakdown)})</environment>",
+            "content": f"<environment>Two-stage completed. Final reward: {reward}</environment>",
         }
-        return float(final_reward), obs, None  # Terminate episode
+        return float(reward), obs, None  # Terminate episode
 
 
 

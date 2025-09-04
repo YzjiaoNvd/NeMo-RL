@@ -7,38 +7,38 @@ import random
 
 def calculate_accuracy(data: list[dict]):
     correct_predictions = 0
-    total_predictions = 0
+    total_predictions = len(data)
 
     # Iterate over each record in the file
     for record in data:
-        total_predictions += 1
         # Safely get values from nested dictionaries
-        predicted_ranking = record.get('predicted_ranking')
+        predicted_ranking = record.get('predicted_ranking', None)
         metadata = record.get('metadata', {})
-        preference_ranking = metadata.get('preference_ranking')
+        preference = metadata.get('preference')
 
         # Ensure the required keys exist
 
-        if preference_ranking is not None:
-            # Apply the mapping rule
-            # 0 if predicted_ranking <= 3 else 1
+        if preference is not None:
             if predicted_ranking is None:
-                mapped_prediction = random.choice([0, 1])
+                try:
+                    predicted_scores = record.get('predicted_scores')
+                    mapped_prediction = 0 if predicted_scores[0] > predicted_scores[1] else 1 
+                except Exception as e:
+                    mapped_prediction = random.choice([0, 1])
             else:
                 mapped_prediction = 0 if predicted_ranking <= 3 else 1
                             
             # Check if the prediction is correct
-            if mapped_prediction == preference_ranking:
+            if mapped_prediction == preference:
                 correct_predictions += 1           
         else:
-            print(f"    [WARNING] A record is missing 'predicted_ranking' or 'preference_ranking', skipping.")
+            #print(f"    [WARNING] A record is missing 'predicted_ranking' or 'preference', skipping.")
+            pass
 
     # Calculate accuracy, avoiding division by zero
-    if total_predictions > 0:
-        accuracy = correct_predictions / total_predictions
-        return accuracy
+    if correct_predictions == total_predictions:
+        return 1.0
     else:
-        print(f"    [WARNING] No valid data found in the file.")
         return 0.0
             
 
@@ -49,7 +49,7 @@ def calculate_step_accuracies(directory_path: str, dataset: str) -> dict:
 
     The accuracy is calculated as follows:
     - Prediction: 0 if 'predicted_ranking' <= 3, else 1.
-    - Ground Truth: 'metadata' -> 'preference_ranking'.
+    - Ground Truth: 'metadata' -> 'preference'.
     - Accuracy = (Number of correct predictions) / (Total samples).
 
     Args:
@@ -79,12 +79,22 @@ def calculate_step_accuracies(directory_path: str, dataset: str) -> dict:
 
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
+                        original_data = json.load(f)
 
-                    if not isinstance(data, list):
+                    if not isinstance(original_data, list):
                         print(f"    [WARNING] Content of {filename} is not a list, skipping.")
                         continue
                     
+                    data = []
+                    for one in original_data:
+                        if dataset == "rmb":
+                            if "metadata" in one and "category_path" in one["metadata"] and "Harmlessness" not in one["metadata"]["category_path"]:
+                                data.append(one)
+
+                        else:
+                            data.append(one)
+
+
                     accuracy = 0.0
                     if dataset == "rewardbench2":
                         chunk_size = 3
@@ -101,7 +111,7 @@ def calculate_step_accuracies(directory_path: str, dataset: str) -> dict:
                             chunk = data[i: i+chunk_size]
                             if chunk:
                                 chunk_accuracy = calculate_accuracy(chunk)
-                                chunk_outcomes.append(1 if chunk_accuracy == 1.0 else 0)
+                                chunk_outcomes.append(chunk_accuracy)
                         
                     # The final accuracy is the average of the outcomes of all chunks
                     if chunk_outcomes:

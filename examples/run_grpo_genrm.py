@@ -45,12 +45,7 @@ def helpsteer3_genrm_data_processor(
     prompt = datum_dict.get("prompt", "")
 
     # Prepare metadata for environment
-    metadata = {
-        "num_responses": datum_dict.get("num_responses", 2),
-        "helpfulness_1": datum_dict.get("label_1", None),
-        "helpfulness_2": datum_dict.get("label_2", None),
-        "preference_ranking": datum_dict.get("preference_ranking", None),
-    }
+    metadata = datum_dict.copy()
 
     # Extract system prompt if present
     # system_prompt = datum_dict.get("system_prompt", "")

@@ -38,44 +38,50 @@ def llm_judge_evaluation(error_message, factcheck_response, api_key, model="nvde
         model (str): Model to use for evaluation
     
     Returns:
-        dict: Contains error counts and reasoning
+        dict: Contains error counts, F1 score and reasoning
     """
     
     # Create client inside the function for multiprocessing compatibility
     client = setup_llm_client(api_key)
     
-    prompt = f"""Count the errors in the groundtruth (only related to "II") and how many are caught in the factcheck response. Please strictly follow the output format requirement and make your reply brief.
+    prompt = f"""Given the human annotation and the model generation of the same fact checking query, please count how many factual errors in the human annotation and how many errors are caught by the model generation. Also count the total number of errors identified by the model (including any false positives). For the human annotation, there are multiple sections and please only focus on the "II" section. Note that both of the human annotation and the model generation include the fact checking results for two responses. Please strictly follow the output format requirement and make your reply brief.
 
-GROUNDTRUTH:
+Human Annotation:
 {error_message}
 
-FACTCHECK RESPONSE:
+Model Generation:
 {factcheck_response}
 
 Instructions:
-1. Count total errors in groundtruth for Response 1
-2. Count total errors in groundtruth for Response 2  
-3. Count how many Response 1 errors are caught in factcheck
-4. Count how many Response 2 errors are caught in factcheck
+1. Count total errors in the human annotation for Response 1
+2. Count total errors in the human annotation for Response 2  
+3. Count how many Response 1 errors are caught in the model generation
+4. Count how many Response 2 errors are caught in the model generation
+5. Count total errors identified by the model for Response 1 (including false positives)
+6. Count total errors identified by the model for Response 2 (including false positives)
 
 OUTPUT FORMAT:
 RESPONSE 1 ERRORS: [pure number]
 RESPONSE 1 CAUGHT: [pure number]
+RESPONSE 1 MODEL_TOTAL: [pure number]
 RESPONSE 2 ERRORS: [pure number] 
 RESPONSE 2 CAUGHT: [pure number]
+RESPONSE 2 MODEL_TOTAL: [pure number]
 TOTAL ERRORS: [pure number]
 TOTAL CAUGHT: [pure number]
+TOTAL MODEL_IDENTIFIED: [pure number]
 """
 
     try:
         completion = client.chat.completions.create(
             model=model,
             messages=[
+                {"role": "system", "content": "detailed thinking on"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.0,  # Low temperature for consistent counting
+            temperature=0.6,  # Low temperature for consistent counting
             top_p=0.9,
-            max_tokens=500,
+            max_tokens=5000,
         )
         
         response_text = completion.choices[0].message.content
@@ -83,49 +89,64 @@ TOTAL CAUGHT: [pure number]
         # Parse the response
         r1_errors = re.search(r'RESPONSE 1 ERRORS:\s*(\d+)', response_text)
         r1_caught = re.search(r'RESPONSE 1 CAUGHT:\s*(\d+)', response_text)
+        r1_model_total = re.search(r'RESPONSE 1 MODEL_TOTAL:\s*(\d+)', response_text)
         r2_errors = re.search(r'RESPONSE 2 ERRORS:\s*(\d+)', response_text)
         r2_caught = re.search(r'RESPONSE 2 CAUGHT:\s*(\d+)', response_text)
+        r2_model_total = re.search(r'RESPONSE 2 MODEL_TOTAL:\s*(\d+)', response_text)
         total_errors = re.search(r'TOTAL ERRORS:\s*(\d+)', response_text)
         total_caught = re.search(r'TOTAL CAUGHT:\s*(\d+)', response_text)
+        total_model_identified = re.search(r'TOTAL MODEL_IDENTIFIED:\s*(\d+)', response_text)
         
         # Extract numbers
         r1_errors_count = int(r1_errors.group(1)) if r1_errors else 0
         r1_caught_count = int(r1_caught.group(1)) if r1_caught else 0
+        r1_model_total_count = int(r1_model_total.group(1)) if r1_model_total else 0
         r2_errors_count = int(r2_errors.group(1)) if r2_errors else 0
         r2_caught_count = int(r2_caught.group(1)) if r2_caught else 0
+        r2_model_total_count = int(r2_model_total.group(1)) if r2_model_total else 0
         total_errors_count = int(total_errors.group(1)) if total_errors else 0
         total_caught_count = int(total_caught.group(1)) if total_caught else 0
+        total_model_identified_count = int(total_model_identified.group(1)) if total_model_identified else 0
         
-        # Calculate hit rate
-        hit_rate = total_caught_count / total_errors_count if total_errors_count > 0 else 0
-        is_hit = hit_rate == 1.0  # Consider it a hit if all errors are caught
-
+        # Calculate precision, recall, and F1 score
+        recall = total_caught_count / total_errors_count if total_errors_count > 0 else 0
+        precision = total_caught_count / total_model_identified_count if total_model_identified_count > 0 else 0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        
         return {
-            'hit': is_hit,
-            'reasoning': f"Response 1: {r1_caught_count}/{r1_errors_count} errors caught. Response 2: {r2_caught_count}/{r2_errors_count} errors caught. Total: {total_caught_count}/{total_errors_count} ({hit_rate:.1%})",
+            'f1_score': f1_score,
+            'precision': precision,
+            'recall': recall,
+            'reasoning': f"Response 1: {r1_caught_count}/{r1_errors_count} errors caught, {r1_model_total_count} total identified. Response 2: {r2_caught_count}/{r2_errors_count} errors caught, {r2_model_total_count} total identified. Total: {total_caught_count}/{total_errors_count} caught, {total_model_identified_count} identified. F1: {f1_score:.3f}",
             'raw_response': response_text,
             'r1_errors': r1_errors_count,
             'r1_caught': r1_caught_count,
+            'r1_model_total': r1_model_total_count,
             'r2_errors': r2_errors_count,
             'r2_caught': r2_caught_count,
+            'r2_model_total': r2_model_total_count,
             'total_errors': total_errors_count,
             'total_caught': total_caught_count,
-            'hit_rate': hit_rate
+            'total_model_identified': total_model_identified_count
         }
         
     except Exception as e:
         print(f"Error in LLM evaluation: {e}")
         return {
-            'hit': False,
+            'f1_score': 0.0,
+            'precision': 0.0,
+            'recall': 0.0,
             'reasoning': f"Error occurred: {str(e)}",
             'raw_response': "",
             'r1_errors': 0,
             'r1_caught': 0,
+            'r1_model_total': 0,
             'r2_errors': 0,
             'r2_caught': 0,
+            'r2_model_total': 0,
             'total_errors': 0,
             'total_caught': 0,
-            'hit_rate': 0.0
+            'total_model_identified': 0
         }
 
 def load_json_file(file_path):
@@ -344,7 +365,7 @@ def worker_evaluate_match(args):
             'question_id': question_id,
             'context_preview': match['context_preview'],
             'error': str(e),
-            'evaluation': {'hit': False, 'reasoning': f"Error: {str(e)}", 'raw_response': ""},
+            'evaluation': {'f1_score': 0.0, 'precision': 0.0, 'recall': 0.0, 'reasoning': f"Error: {str(e)}", 'raw_response': ""},
             'worker_id': worker_id
         }
 
@@ -465,56 +486,84 @@ def generate_summary_report(evaluation_results):
         dict: Summary statistics
     """
     total_instances = len(evaluation_results)
-    total_hits = 0
     total_errors = 0
     total_caught = 0
+    total_model_identified = 0
     r1_total_errors = 0
     r1_total_caught = 0
+    r1_total_model_identified = 0
     r2_total_errors = 0
     r2_total_caught = 0
-    individual_hit_rates = []
+    r2_total_model_identified = 0
+    individual_f1_scores = []
+    individual_precision_scores = []
+    individual_recall_scores = []
     
     for result in evaluation_results:
         if 'evaluation' in result:
             eval_data = result['evaluation']
-            if eval_data.get('hit', False):
-                total_hits += 1
             
-            # Collect individual hit rates
-            individual_hit_rates.append(eval_data.get('hit_rate', 0.0))
+            # Collect individual scores
+            individual_f1_scores.append(eval_data.get('f1_score', 0.0))
+            individual_precision_scores.append(eval_data.get('precision', 0.0))
+            individual_recall_scores.append(eval_data.get('recall', 0.0))
+            
             # Sum up error counts
             total_errors += eval_data.get('total_errors', 0)
             total_caught += eval_data.get('total_caught', 0)
+            total_model_identified += eval_data.get('total_model_identified', 0)
             r1_total_errors += eval_data.get('r1_errors', 0)
             r1_total_caught += eval_data.get('r1_caught', 0)
+            r1_total_model_identified += eval_data.get('r1_model_total', 0)
             r2_total_errors += eval_data.get('r2_errors', 0)
             r2_total_caught += eval_data.get('r2_caught', 0)
+            r2_total_model_identified += eval_data.get('r2_model_total', 0)
 
     # Calculate overall statistics
-    overall_hit_rate = total_hits / total_instances if total_instances > 0 else 0
-    overall_error_catch_rate = total_caught / total_errors if total_errors > 0 else 0
-    average_hit_rate = sum(individual_hit_rates) / len(individual_hit_rates) if individual_hit_rates else 0
-    r1_catch_rate = r1_total_caught / r1_total_errors if r1_total_errors > 0 else 0
-    r2_catch_rate = r2_total_caught / r2_total_errors if r2_total_errors > 0 else 0
+    average_f1_score = sum(individual_f1_scores) / len(individual_f1_scores) if individual_f1_scores else 0
+    average_precision = sum(individual_precision_scores) / len(individual_precision_scores) if individual_precision_scores else 0
+    average_recall = sum(individual_recall_scores) / len(individual_recall_scores) if individual_recall_scores else 0
+    
+    # Calculate macro-level metrics
+    overall_recall = total_caught / total_errors if total_errors > 0 else 0
+    overall_precision = total_caught / total_model_identified if total_model_identified > 0 else 0
+    overall_f1_score = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall) if (overall_precision + overall_recall) > 0 else 0
+    
+    r1_recall = r1_total_caught / r1_total_errors if r1_total_errors > 0 else 0
+    r1_precision = r1_total_caught / r1_total_model_identified if r1_total_model_identified > 0 else 0
+    r1_f1_score = 2 * (r1_precision * r1_recall) / (r1_precision + r1_recall) if (r1_precision + r1_recall) > 0 else 0
+    
+    r2_recall = r2_total_caught / r2_total_errors if r2_total_errors > 0 else 0
+    r2_precision = r2_total_caught / r2_total_model_identified if r2_total_model_identified > 0 else 0
+    r2_f1_score = 2 * (r2_precision * r2_recall) / (r2_precision + r2_recall) if (r2_precision + r2_recall) > 0 else 0
     
     summary = {
         'total_instances': total_instances,
-        'total_hits': total_hits,
-        'overall_hit_rate': overall_hit_rate,
-        'average_hit_rate': average_hit_rate,
+        'average_f1_score': average_f1_score,
+        'average_precision': average_precision,
+        'average_recall': average_recall,
+        'overall_f1_score': overall_f1_score,
+        'overall_precision': overall_precision,
+        'overall_recall': overall_recall,
         'error_analysis': {
             'total_errors': total_errors,
             'total_caught': total_caught,
-            'overall_catch_rate': overall_error_catch_rate,
+            'total_model_identified': total_model_identified,
             'response1': {
                 'errors': r1_total_errors,
                 'caught': r1_total_caught,
-                'catch_rate': r1_catch_rate
+                'model_identified': r1_total_model_identified,
+                'recall': r1_recall,
+                'precision': r1_precision,
+                'f1_score': r1_f1_score
             },
             'response2': {
                 'errors': r2_total_errors,
                 'caught': r2_total_caught,
-                'catch_rate': r2_catch_rate
+                'model_identified': r2_total_model_identified,
+                'recall': r2_recall,
+                'precision': r2_precision,
+                'f1_score': r2_f1_score
             }
         }
     }
@@ -587,7 +636,7 @@ def evaluate_single_step(file1_data, step_num, step_file_path, api_key, max_work
     }
     
     print(f"Step {step_num} completed in {end_time - start_time:.2f} seconds")
-    print(f"Hit rate: {summary['average_hit_rate']:.2%} ({summary['total_hits']}/{summary['total_instances']})")
+    print(f"Average F1 score: {summary['average_f1_score']:.3f}")
     
     return step_result
 
@@ -610,12 +659,15 @@ def generate_cross_step_summary(all_step_results):
                 'step_number': step_result['step_number'],
                 'step_file': step_result['step_file'],
                 'total_instances': summary['total_instances'],
-                'total_hits': summary['total_hits'],
-                'overall_hit_rate': summary['overall_hit_rate'],
-                'average_hit_rate': summary['average_hit_rate'],
+                'average_f1_score': summary['average_f1_score'],
+                'average_precision': summary['average_precision'],
+                'average_recall': summary['average_recall'],
+                'overall_f1_score': summary['overall_f1_score'],
+                'overall_precision': summary['overall_precision'],
+                'overall_recall': summary['overall_recall'],
                 'total_errors': summary['error_analysis']['total_errors'],
                 'total_caught': summary['error_analysis']['total_caught'],
-                'overall_catch_rate': summary['error_analysis']['overall_catch_rate'],
+                'total_model_identified': summary['error_analysis']['total_model_identified'],
                 'evaluation_time': step_result['evaluation_time']
             }
             step_summaries.append(step_summary)
@@ -625,21 +677,20 @@ def generate_cross_step_summary(all_step_results):
     
     # Calculate overall statistics
     total_instances_all = sum(s['total_instances'] for s in step_summaries)
-    total_hits_all = sum(s['total_hits'] for s in step_summaries)
     total_time_all = sum(s['evaluation_time'] for s in step_summaries)
+    weighted_avg_f1 = sum(s['average_f1_score'] * s['total_instances'] for s in step_summaries) / total_instances_all if total_instances_all > 0 else 0
     
     cross_step_summary = {
         'total_steps_evaluated': len(step_summaries),
         'total_instances_all_steps': total_instances_all,
-        'total_hits_all_steps': total_hits_all,
-        'overall_hit_rate_all_steps': total_hits_all / total_instances_all if total_instances_all > 0 else 0,
+        'weighted_average_f1_score': weighted_avg_f1,
         'total_evaluation_time': total_time_all,
         'step_by_step_results': step_summaries
     }
     
     return cross_step_summary
 
-def main(file1_path, step_folder_path, api_key, output_dir="./factcheck_step_evaluation_results", 
+def main(file1_path, step_folder_path, api_key, output_dir="/factcheck_step_evaluation_results", 
          max_workers=None, use_threading=False, limit_instances=None, file_pattern="*hs3local_results.json"):
     """
     Main function to run evaluation across multiple step files
@@ -656,6 +707,7 @@ def main(file1_path, step_folder_path, api_key, output_dir="./factcheck_step_eva
     """
     
     # Create output directory
+    output_dir = step_folder_path + output_dir
     os.makedirs(output_dir, exist_ok=True)
     
     print("Loading helpfulness reasoning file...")
@@ -712,14 +764,14 @@ def main(file1_path, step_folder_path, api_key, output_dir="./factcheck_step_eva
     print(f"Total steps evaluated: {cross_step_summary['total_steps_evaluated']}")
     print(f"Total instances across all steps: {cross_step_summary['total_instances_all_steps']}")
     print(f"Total evaluation time: {cross_step_summary['total_evaluation_time']:.2f} seconds")
-    print(f"\nStep-by-step hit rates:")
+    print(f"\nStep-by-step F1 scores:")
     
     for step_summary in cross_step_summary['step_by_step_results']:
-        print(f"  Step {step_summary['step_number']:3d}: {step_summary['average_hit_rate']:6.2%} "
-              f"({step_summary['total_hits']:3d}/{step_summary['total_instances']:3d}) - "
+        print(f"  Step {step_summary['step_number']:3d}: {step_summary['average_f1_score']:6.3f} "
+              f"(P: {step_summary['average_precision']:.3f}, R: {step_summary['average_recall']:.3f}) - "
               f"{step_summary['step_file']}")
     
-    print(f"\nOverall hit rate across all steps: {cross_step_summary['overall_hit_rate_all_steps']:.2%}")
+    print(f"\nWeighted average F1 score across all steps: {cross_step_summary['weighted_average_f1_score']:.3f}")
     print(f"\nResults saved to: {output_dir}")
 
 if __name__ == "__main__":
@@ -730,10 +782,10 @@ if __name__ == "__main__":
                        default='/lustre/fsw/portfolios/llmservice/users/yizhuj/datasets/fact_checking/hs3_fact.json', 
                        help="Path to file 1 (helpfulness reasoning)")
     parser.add_argument("--step_folder", 
-                       default='/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_qwen3_14b_lr_2e-8_temp_1_kl_0.001_grpo_bs_256_rollout_64_num_prompts_128_r0_fact1_base/outputs/', 
+                       default='/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/grpo_hs3_16K_step240_clip_max_0.28_qwen3_14b_lr_2e-7_temp_1_kl_0.001_grpo_bs_256_rollout_8_num_prompts_128_r0_fact1_base/outputs', 
                        help="Path to folder containing step files")
     parser.add_argument("--api_key", 
-                       default="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", 
+                       default="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", 
                        help="NVIDIA API key")
     parser.add_argument("--max_workers", type=int, default=None, 
                        help="Number of parallel workers (defaults to CPU count)")

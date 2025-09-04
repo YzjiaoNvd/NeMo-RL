@@ -48,8 +48,8 @@ def two_stage_genrm_data_processor(
     response2 = datum_dict.get("response2", "")
     
     num_responses = datum_dict.get("num_responses", 2)
-    helpfulness_1 = datum_dict.get("label_1", None)
-    helpfulness_2 = datum_dict.get("label_2", None)
+    helpfulness_1 = datum_dict.get("helpfulness_1", None)
+    helpfulness_2 = datum_dict.get("helpfulness_2", None)
     preference_ranking = datum_dict.get("preference_ranking", None)
     
     # For GRPO, we always start with the fact-checking stage

@@ -21,9 +21,9 @@ def extract_preference(result: dict) -> Tuple[int, str]:
         return chosen_is_better
         
     except Exception as e:
-        print(f"Warning: Failed to extract preference ranking from result: {e}")
-        # chosen_is_better = random.choice([0, 1])
-        chosen_is_better = -1
+        # print(f"Warning: Failed to extract preference ranking from result: {e}")
+        chosen_is_better = random.choice([0, 1])
+        # chosen_is_better = -1
         return chosen_is_better
     
 
@@ -58,7 +58,7 @@ def compute_rmbench_accuracy_for_sample(sample_results: List[dict]) -> Dict[str,
         sample_id = metadata.get("sample_id")
         chosen_style_idx = metadata.get("chosen_style_idx")
         rejected_style_idx = metadata.get("rejected_style_idx")
-        gt = metadata.get("preference_ranking")
+        gt = metadata.get("preference")
         
         # Extract preference using the robust method (same as original script)
         chosen_is_better = extract_preference(result)
@@ -92,6 +92,10 @@ def compute_rmbench_accuracy_for_sample(sample_results: List[dict]) -> Dict[str,
     
     # Total average accuracy
     total_avg_acc = np.mean(acc_matrix)
+    
+    # Merge safety subcategories into single safety domain
+    if domain and domain.startswith("safety"):
+        domain = "safety"
     
     return {
         "sample_id": sample_id,
@@ -127,26 +131,28 @@ def print_rmbench_results(metrics: Dict[str, Any]):
         
         overall = step_data.get("overall", {})
         if overall:
-            #print(f"Overall Metrics (samples: {overall.get('sample_count', 0)}):")
-            #print(f"  Hard Accuracy:      {overall.get('hard_acc', 0):.3f}")
-            #print(f"  Normal Accuracy:    {overall.get('normal_acc', 0):.3f}")
-            #print(f"  Easy Accuracy:      {overall.get('easy_acc', 0):.3f}")
+            print(f"Overall Metrics (samples: {overall.get('sample_count', 0)}):")
+            print(f"  Hard Accuracy:      {overall.get('hard_acc', 0):.3f}")
+            print(f"  Normal Accuracy:    {overall.get('normal_acc', 0):.3f}")
+            print(f"  Easy Accuracy:      {overall.get('easy_acc', 0):.3f}")
             print(f"  Total Avg Accuracy: {overall.get('total_avg_acc', 0):.3f}")
         
 
         # Print domain-specific metrics
         
         domains = step_data.get("domains", {})
-        if domains:
+        try:
             print(f"\nDomain-specific Metrics:")
             for domain, domain_data in sorted(domains.items()):
-                if domain != 'chat':
-                    continue
-                #print(f"  {domain.upper()} (samples: {domain_data.get('sample_count', 0)}):")
+                print(f"  {domain} (samples: {domain_data.get('sample_count', 0)}):")
                 #print(f"    Hard Acc:   {domain_data.get('hard_acc', 0):.3f}")
                 #print(f"    Normal Acc: {domain_data.get('normal_acc', 0):.3f}")
                 #print(f"    Easy Acc:   {domain_data.get('easy_acc', 0):.3f}")
                 print(f"    Total Avg:  {domain_data.get('total_avg_acc', 0):.3f}")
+
+        except Exception as e:
+            print("error when printing results")
+        
         
         
 
@@ -220,12 +226,12 @@ def compute_rmbench_metrics(directory_path: str, dataset: str = "rmbench") -> Di
                             
                             all_samples.extend(domain_samples)
                     
-                    # Calculate overall metrics
-                    if all_samples:
-                        overall_hard_acc = np.mean([s["hard_acc"] for s in all_samples])
-                        overall_normal_acc = np.mean([s["normal_acc"] for s in all_samples])
-                        overall_easy_acc = np.mean([s["easy_acc"] for s in all_samples])
-                        overall_total_avg_acc = np.mean([s["total_avg_acc"] for s in all_samples])
+                    # Calculate overall metrics by averaging domain metrics (like Code 1)
+                    if step_metrics["domains"]:
+                        overall_hard_acc = np.mean([domain_data["hard_acc"] for domain_data in step_metrics["domains"].values()])
+                        overall_normal_acc = np.mean([domain_data["normal_acc"] for domain_data in step_metrics["domains"].values()])
+                        overall_easy_acc = np.mean([domain_data["easy_acc"] for domain_data in step_metrics["domains"].values()])
+                        overall_total_avg_acc = np.mean([domain_data["total_avg_acc"] for domain_data in step_metrics["domains"].values()])
                         
                         step_metrics["overall"] = {
                             "hard_acc": overall_hard_acc,
