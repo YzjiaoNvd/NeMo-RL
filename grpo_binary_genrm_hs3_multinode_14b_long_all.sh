@@ -12,12 +12,12 @@ NUM_ACTOR_NODES=8
 
 # Model and training configuration
 FSDP2=True
-MODEL="Qwen/Qwen3-14B"
-MODEL_NAME="qwen3_14b"
+#MODEL="Qwen/Qwen3-14B"
+#MODEL_NAME="qwen3_14b"
 #MODEL="Qwen/Qwen2.5-14B-Instruct"
 #MODEL_NAME="qwen25_14b"
-#MODEL="Qwen/Qwen3-8B"
-#MODEL_NAME="qwen3_8b"
+MODEL="Qwen/Qwen3-8B"
+MODEL_NAME="qwen3_8b"
 
 
 ACT_CKPT=True

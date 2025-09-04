@@ -135,7 +135,7 @@ def setup_data(
     genrm_env = GenRMEnvironment.options(
         runtime_env={
             "py_executable": get_actor_python_env(
-                "nemo_rl.environments.genrm_environment.GenRMEnvironment"
+                "nemo_rl.environments.binary_genrm_environment.GenRMEnvironment"
             ),
             "env_vars": dict(os.environ),
         }

@@ -177,7 +177,7 @@ def setup_two_stage_data(tokenizer, data_config, env_configs):
     two_stage_env = TwoStageFactCheckEnvironment.options(
         runtime_env={
             "py_executable": get_actor_python_env(
-                "nemo_rl.environments.genrm_environment_w_fact.TwoStageFactCheckEnvironment"
+                "nemo_rl.environments.binary_genrm_environment_w_fact3.TwoStageFactCheckEnvironment"
             ),
             "env_vars": dict(os.environ),
         }
