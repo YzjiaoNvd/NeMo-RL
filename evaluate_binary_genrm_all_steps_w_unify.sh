@@ -8,14 +8,14 @@ set -e
 
 # Base directory (from argument or default)
 BASE_DIR="${1:-/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL/results/2grpo_hs3_16K_step240_clip_max_0.28_llama3.1_8B_lr_2e-6_temp_1_kl_0.001_grpo_bs_256_rollout_16_num_prompts_128}"
-DATASETS="${2:-"rewardbench,rmbench,rmb,rewardbench2,judgebench"}"
-MODE="${3:-latest}"  # "all" or "latest"
+MODE="${2:-latest}"  # "all" or "latest"
+DATASETS="${3:-"rewardbench,rmbench,rmb,rewardbench2,judgebench"}"
 HF_DIR="${BASE_DIR}/HF"
-RESULTS_DIR="${BASE_DIR}/outputs_vanilla"
+RESULTS_DIR="${BASE_DIR}/outputs"
 
 
 # Find evaluation script
-EVAL_SCRIPT="$(dirname "$0")/evaluate_binary_genrm_one_step.sh"
+EVAL_SCRIPT="$(dirname "$0")/evaluate_binary_genrm_one_step_w_unify.sh"
 if [ ! -f "$EVAL_SCRIPT" ]; then
     echo "Error: evaluate_genrm_one_step.sh not found"
     exit 1
@@ -47,6 +47,7 @@ SORTED_STEP_DIRS=$(echo "$STEP_DIRS" | while read dir; do
     step_num=$(basename "$dir" | sed 's/step_//')
     echo "$step_num $dir"
 done | sort -n | awk '{print $2}')
+
 
 
 # Choose directories based on mode

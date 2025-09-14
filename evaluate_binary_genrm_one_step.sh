@@ -14,9 +14,9 @@ CONTAINER="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_
 
 # SLURM Config
 ACCOUNT="llmservice_modelalignment_sft"
-PARTITION="batch_block1"
-TIME="04:00:00"
-NODES=1
+PARTITION="interactive"
+TIME="4:00:00"
+NODES=2
 GPUS=8
 
 # Paths

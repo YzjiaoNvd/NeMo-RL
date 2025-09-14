@@ -16,7 +16,7 @@ from nemo_rl.environments.interfaces import (
 
 # ========================= STAGE 1: UNIFIED QUALITY ASSESSMENT =========================
 
-UNIFIED_ANALYSIS_PROMPT = """You are a comprehensive response quality evaluator. Given the context of the conversation (the last turn is the User's query) and two responses from the Assistant, your role is to assess what aspects of quality matter most for this particular query, then provide detailed analysis focusing on those critical dimensions. Strictly follow the required output format and make your answer as brief as possible. 
+UNIFIED_ANALYSIS_PROMPT = """You are a response quality evaluator. Given the context of the conversation (the last turn is the User's query) and two responses from the Assistant, you should compare the difference of two model responses, select the most important cognitive abilities for this query, and analyze critical issues in each response.
 
 **Context:** 
 {context}
@@ -24,59 +24,51 @@ UNIFIED_ANALYSIS_PROMPT = """You are a comprehensive response quality evaluator.
 **Responses:**
 {responses}
 
-**Instructions:** 
-First, determine what quality dimensions are most important for this query. Then identify the critical issues of each response focusing on those key areas based on the difference of two responses.
-
 **Output Format:**
 [Quality Assessment Focus]
-Choose one from four dimensions: Factual Accuracy, Mathematical Reasoning, Code Quality, Safety Concern. Don't answer any other content.
+Choose 1-3 abilities: Information Accuracy, Computational Precision, Logical Reasoning, Implementation Capability, Safety Awareness, Response Completeness, Instruction Adherence, Communication Clarity.
 [End of Quality Assessment Focus]
 
 [Quality Analysis for Response 1]
-- Critical Issues: [Focus on the dimension identified above and list all errors or concerns. If no concern or error, answer "None identified"]
-  * Factual Accuracy: Check for factual errors, unsupported claims, misinformation
-  * Mathematical Reasoning: Verify calculations, logical steps, solution completeness  
-  * Code Quality: Identify bugs, inefficiencies, best practice violations
-  * Safety Concern: Assess for harmful content, ethical concerns, bias
-- Corrections: [Specific corrections for the found issues, or "None needed"]
+- Critical Issues: [Focus on chosen abilities, list specific errors/concerns, or "None identified"]
+  * Information Accuracy: factual errors, source reliability, misinformation
+  * Computational Precision: calculation errors, formula mistakes, step validity
+  * Logical Reasoning: conclusion correctness (CRITICAL), logical flaws, reasoning gaps
+  * Implementation Capability: functional errors (CRITICAL), security issues, inefficiency
+  * Safety Awareness: harmful content (CRITICAL), inappropriate refusals, bias
+  * Instruction Adherence: constraint violations, format errors, requirement misses
+  * Response Completeness: missing content, insufficient detail, incomplete coverage
 [End of Quality Analysis for Response 1]
 
 [Quality Analysis for Response 2]
-- Critical Issues: [Focus on the dimension identified above and list all errors or concerns. If no concern or error, answer "None identified"]
-- Corrections: [Specific corrections for the found issues, or "None needed"]
+- Critical Issues: [Same format as above]
 [End of Quality Analysis for Response 2]"""
-  
+
 
 # ========================= STAGE 2: SCORING =========================
 
-SCORING_STAGE_PROMPT = """You are a skilled response evaluator making final quality judgments. You have the conversation context, two responses to compare, and a detailed quality analysis from a previous evaluation.
 
-Your task is to synthesize this information and determine which response better serves the user's needs, considering the quality dimensions identified in the analysis. Please refer to the quality analysis if you think it useful. 
-Before scoring, analyze step by step. Please strictly follow the required output format.
+SCORING_STAGE_PROMPT = """You are making final comparative judgments using established evaluation priorities. You have the conversation context, two responses to compare, and a detailed quality analysis from a previous evaluation. 
+Before scoring, analyze step by step. Different query types require different evaluation hierarchies. Please strictly follow the required output format.
 
-When evaluating two model responses, consider the following factors:
-
-- Correctness/Completeness: Is the response accurate and complete?
-- Coherence/Clarity: Is the response clear, coherent, and easy to understand?
-- Instruction following: Does the response follow the instructions and fulfill the user's request?
-- Relevance: Is the response relevant to the user's query/input?
-- Level of Detail and Creativity: Does the response provide enough detail without being too verbose? Does it show creativity but not hallucinations?
-
+**Evaluation Hierarchies:**
+- **Accuracy-Critical** (factual, computational, technical): Correctness > Process > Presentation 
+- **Creative/Open-Ended** (writing, discussion): User Intent > Content Quality > Creativity 
+- **Instruction-Following** (constrained tasks): Adherence > Content > Clarity
 
 #### Output Format Requirements ####
 [The Begin of Analysis on Response 1]
-Analysis on response 1
+[Apply appropriate evaluation hierarchy to the quality analysis findings]
 [The End of Analysis on Response 1]
 
 [The Begin of Analysis on Response 2]
-Analysis on response 2
+[Apply appropriate evaluation hierarchy to the quality analysis findings]
 [The End of Analysis on Response 2]
 
 [The Begin of Ranking Score]
-\\boxed{1 or 2} (id of the better response)
+\\boxed{1 or 2} (response that better meets the appropriate evaluation hierarchy)
 [The End of Ranking Score]
 """
-
 
 # ========================= DATA STRUCTURES =========================
 

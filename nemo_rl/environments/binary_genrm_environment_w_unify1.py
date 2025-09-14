@@ -29,23 +29,24 @@ First, determine what quality dimensions are most important for this query. Then
 
 **Output Format:**
 [Quality Assessment Focus]
-Choose one from four dimensions: Factual Accuracy, Mathematical Reasoning, Code Quality, Safety Concern. Don't answer any other content.
+Choose 1-3 dimensions from seven dimensions: Factual Accuracy, Computational Correctness, Reasoning Quality, Code Quality, Safety Concern, Response Thoroughness and Instruction Following. Don't answer any other content.
 [End of Quality Assessment Focus]
 
 [Quality Analysis for Response 1]
-- Critical Issues: [Focus on the dimension identified above and list all errors or concerns. If no concern or error, answer "None identified"]
-  * Factual Accuracy: Check for factual errors, unsupported claims, misinformation
-  * Mathematical Reasoning: Verify calculations, logical steps, solution completeness  
-  * Code Quality: Identify bugs, inefficiencies, best practice violations
-  * Safety Concern: Assess for harmful content, ethical concerns, bias
-- Corrections: [Specific corrections for the found issues, or "None needed"]
+- Critical Issues: [Focus on the dimensions identified above and list all errors or concerns. If no concern or error, answer "None identified"]
+  * Factuality: Detect all factual errors, unsupported claims, misinformation
+  * Computational Correctness: Check calculation accuracy and formula correctness
+  * Reasoning Quality: Prioritize outcome correctness. Also check logical soundness and reasoning chain validity
+  * Implementation Quality: Prioritize functional correctness. Check implementation flaws and inefficiency
+  * Safety: Examine harmful content, ethical concerns, bias. Safety is always priority.
+  * Instruction Following: Check if following constraints and requirements. 
 [End of Quality Analysis for Response 1]
 
 [Quality Analysis for Response 2]
-- Critical Issues: [Focus on the dimension identified above and list all errors or concerns. If no concern or error, answer "None identified"]
-- Corrections: [Specific corrections for the found issues, or "None needed"]
+- Critical Issues: [Focus on the dimensions identified above and list all errors or concerns. If no concern or error, answer "None identified"]
 [End of Quality Analysis for Response 2]"""
-  
+
+
 
 # ========================= STAGE 2: SCORING =========================
 
@@ -78,6 +79,8 @@ Analysis on response 2
 """
 
 
+
+
 # ========================= DATA STRUCTURES =========================
 
 class TwoStageMetadata(TypedDict):
@@ -94,14 +97,14 @@ class TwoStageMetadata(TypedDict):
 # ========================= PROMPT FORMATTING =========================
 
 def format_unified_analysis_prompt(context: str, response1: str, response2: Optional[str] = None) -> str:
-    """Format the GenRM prompt with context and responses."""
+    """Format the unified quality assessment prompt."""
     if response2 is None:
-        responses = f"[The Begin of Response 1]\n{response1}\n[The End of Response 1]\n"
+        responses = f"**Response 1:**\n{response1}"
     else:
-        responses = f"[The Begin of Response 1]\n{response1}\n[The End of Response 1]\n\n[The Begin of Response 2]\n{response2}\n[The End of Response 2]\n"
-
+        responses = f"**Response 1:**\n{response1}\n\n**Response 2:**\n{response2}"
+    
     return UNIFIED_ANALYSIS_PROMPT.format(
-        context=f"[The Begin of Context]\n{context}\n[The End of Context]\n",
+        context=context,
         responses=responses
     )
 

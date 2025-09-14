@@ -353,7 +353,7 @@ def run_two_stage_evaluation(vllm_generation, dataloader, tokenizer, output_file
                     "idx": batch["idx"][idx].item() if torch.is_tensor(batch["idx"][idx]) else batch["idx"][idx],
                     "error": str(e),
                     "scoring_parse_success": False,
-                    "approach": "filtered_two_stage_fact2",
+                    "metadata": metadata,
                 })
     
     # Save results

@@ -17,7 +17,7 @@ def extract_preference(result: dict) -> Tuple[int, str]:
     try:
         # Method 1: Use predicted_ranking (same as original script)
         predicted_ranking = result["predicted_ranking"]
-        chosen_is_better = 1 if predicted_ranking <= 0 else 0
+        chosen_is_better = 1 if predicted_ranking <= 1 else 0
         return chosen_is_better
         
     except Exception as e:

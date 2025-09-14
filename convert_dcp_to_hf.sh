@@ -10,9 +10,9 @@ set -e
 
 # Input arguments
 CHECKPOINT_DIR="$1"
-THRESHOLD="${2:-0}"
-OUTPUT_BASE_DIR="${3:-${CHECKPOINT_DIR}/HF}"
-MODE="${4:-latest}"  # "all" or "latest"/"last"
+MODE="${2:-latest}"  # "all" or "latest"/"last"
+THRESHOLD="${3:-0}"
+OUTPUT_BASE_DIR="${4:-${CHECKPOINT_DIR}/HF}"
 
 # Container configuration
 GPFS="/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/NeMo-RL"

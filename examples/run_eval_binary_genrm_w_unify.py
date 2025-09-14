@@ -29,11 +29,11 @@ from nemo_rl.models.generation import configure_generation_config
 from nemo_rl.utils.config import load_config, parse_hydra_overrides
 
 # Import two-stage environment components
-from nemo_rl.environments.genrm_environment_w_fact1 import (
-    format_factcheck_stage_prompt,
+from nemo_rl.environments.binary_genrm_environment_w_unify import (
+    format_unified_analysis_prompt,  # Updated function name
     format_scoring_stage_prompt,
     parse_scoring_response,
-    parse_fact_checking_response,
+    parse_unified_analysis_response,  # Updated function name
 )
 
 
@@ -60,21 +60,21 @@ def genrm_eval_data_processor(
     max_seq_length: int,
     idx: int,
 ) -> DatumSpec:
-    """Process evaluation data for GenRM format."""
+    """Process evaluation data for unified quality assessment GenRM format."""
     # Extract data
     context = datum_dict.get("context", "")
     response1 = datum_dict.get("response1", "")
     response2 = datum_dict.get("response2", "")
     
-    # For GRPO, we always start with the fact-checking stage
+    # For GRPO, we always start with the quality assessment stage
     # The environment will handle the transition to scoring stage
-    factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
+    quality_prompt = format_unified_analysis_prompt(context, response1, response2)  # Updated function call
 
-    # Create message log for fact-checking stage
+    # Create message log for quality assessment stage
     message_log = []
     user_message = {
         "role": "user",
-        "content": factcheck_prompt,
+        "content": quality_prompt,
     }
     
     # Apply chat template
@@ -93,11 +93,10 @@ def genrm_eval_data_processor(
 
     # Extract metadata for two-stage evaluation
     metadata = datum_dict.copy()
-    
+
     # Debug: Print extracted metadata
     if idx < 3:
         print(f"  Extracted metadata: {metadata}")
-
 
     return DatumSpec(
         message_log=message_log,
@@ -110,7 +109,7 @@ def genrm_eval_data_processor(
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run GenRM two-stage evaluation")
+    parser = argparse.ArgumentParser(description="Run Unified Quality Assessment GenRM two-stage evaluation")
     parser.add_argument("--config", type=str, default=None, help="Path to YAML config file")
     parser.add_argument("--dataset", type=str, 
                        choices=["judgebench", "rmbench", "rewardbench2", "hs3local", "rewardbench", "rmb"],
@@ -157,42 +156,41 @@ def setup_data(tokenizer, data_config, dataset_name):
     return processed_dataset, dataset_loader
 
 
-
 def run_two_stage_evaluation(vllm_generation, dataloader, tokenizer, output_file):
-    """Run two-stage evaluation: fact-checking then scoring."""
+    """Run two-stage evaluation: quality assessment then scoring."""
     results = []
     
     print("Running two-stage evaluation...")
     for batch_idx, batch in enumerate(tqdm(dataloader)):
         try:
-            # STAGE 1: Fact-checking
-            factcheck_prompts = []
+            # STAGE 1: Quality assessment
+            quality_prompts = []
             for metadata in batch["extra_env_info"]:
                 context = metadata.get("context", "")
                 response1 = metadata.get("response1", "")
                 response2 = metadata.get("response2", "")
                 
-                factcheck_prompt = format_factcheck_stage_prompt(context, response1, response2)
+                quality_prompt = format_unified_analysis_prompt(context, response1, response2)  # Updated function call
                 user_message = {
                     "role": "user",
-                    "content": factcheck_prompt,
+                    "content": quality_prompt,
                 }
-                factcheck_message = tokenizer.apply_chat_template(  # type: ignore
+                quality_message = tokenizer.apply_chat_template(  # type: ignore
                     [user_message],
                     tokenize=False,
                     add_generation_prompt=True,
                     add_special_tokens=False,
                 )
-                factcheck_prompts.append(factcheck_message)
+                quality_prompts.append(quality_message)
             
-            # Collect the factcheck results
-            stage1_inputs = BatchedDataDict({"prompts": factcheck_prompts})
+            # Collect the quality assessment results
+            stage1_inputs = BatchedDataDict({"prompts": quality_prompts})
             stage1_outputs = vllm_generation.generate_text(stage1_inputs)
-            factcheck_responses = stage1_outputs.get("texts", [""] * len(factcheck_prompts))
+            quality_responses = stage1_outputs.get("texts", [""] * len(quality_prompts))
 
-            updated_factcheck_responses = []
-            for factcheck_response in factcheck_responses:
-                updated_factcheck_responses.append(factcheck_response + "\n" + tokenizer.eos_token + "\n")
+            updated_quality_responses = []
+            for quality_response in quality_responses:
+                updated_quality_responses.append(quality_response + "\n" + tokenizer.eos_token + "\n")
             
 
             # STAGE 2: Scoring
@@ -202,12 +200,9 @@ def run_two_stage_evaluation(vllm_generation, dataloader, tokenizer, output_file
                 response1 = metadata.get("response1", "")
                 response2 = metadata.get("response2", "")
                 
-                factcheck_result = factcheck_responses[i]
-                # Truncate fact-check if too long
-                #if len(factcheck_result) > 5000:
-                #    factcheck_result = factcheck_result[:5000] + "\n[...truncated]"
+                quality_result = quality_responses[i]
                 scoring_prompt = format_scoring_stage_prompt(
-                    context, response1, response2, factcheck_result
+                    context, response1, response2, quality_result
                 )
                 user_message = {
                     "role": "user",
@@ -223,34 +218,30 @@ def run_two_stage_evaluation(vllm_generation, dataloader, tokenizer, output_file
             
             # Generate scoring responses
             two_stage_prompts = []
-            for factcheck_prompt, updated_factcheck_response, scoring_prompt in zip(factcheck_prompts, updated_factcheck_responses, scoring_prompts):
-                two_stage_prompts.append(factcheck_prompt + updated_factcheck_response + scoring_prompt)
-            print("two_stage_prompts")
-            print(two_stage_prompts[:1])
+            for quality_prompt, updated_quality_response, scoring_prompt in zip(quality_prompts, updated_quality_responses, scoring_prompts):
+                two_stage_prompts.append(quality_prompt + updated_quality_response + scoring_prompt)
             stage2_inputs = BatchedDataDict({"prompts": two_stage_prompts})
             stage2_outputs = vllm_generation.generate_text(stage2_inputs)
             scoring_responses = stage2_outputs.get("texts", [""] * len(scoring_prompts))
             
             # Process results
-            for idx, (factcheck_resp, scoring_resp, metadata) in enumerate(zip(
-                factcheck_responses, scoring_responses, batch["extra_env_info"]
+            for idx, (quality_resp, scoring_resp, metadata) in enumerate(zip(
+                quality_responses, scoring_responses, batch["extra_env_info"]
             )):
                 result = {
                     "idx": batch["idx"][idx].item() if torch.is_tensor(batch["idx"][idx]) else batch["idx"][idx],
-                    "factcheck_response": factcheck_resp,
+                    "quality_response": quality_resp,     # Updated field name
                     "scoring_response": scoring_resp,
                     "metadata": metadata,
                 }
                 
                 # Parse scoring response for metrics
-                is_valid, scores, ranking, error_msg = parse_scoring_response(
+                is_valid, ranking, error_msg = parse_scoring_response(
                     scoring_resp, metadata.get("num_responses", 2)
                 )
                 
                 result["scoring_parse_success"] = is_valid
-                if is_valid:
-                    result["predicted_scores"] = [int(s) for s in scores]
-                    if ranking:
+                if is_valid and ranking:
                         result["predicted_ranking"] = int(ranking)
                 else:
                     result["scoring_parse_error"] = error_msg
@@ -291,7 +282,7 @@ def calculate_metrics(results):
             total_rankings += 1
             true_pref = result["metadata"].get("preference")
             if true_pref is not None:
-                pred_pref = 0 if result["predicted_ranking"] <= 3 else 1
+                pred_pref = result["predicted_ranking"]
                 if pred_pref == true_pref:
                     correct_rankings += 1
     

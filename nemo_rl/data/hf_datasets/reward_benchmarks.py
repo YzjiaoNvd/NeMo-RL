@@ -118,6 +118,9 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     context = "User: " + context
     response1 = data.get("response_A")
     response2 = data.get("response_B")
+    source = data.get("source", "")
+    pair_id = data.get("pair_id", "")
+
     
     # Parse the label field (e.g., "B>A" means B is better than A)
     label = data.get("label")
@@ -130,6 +133,19 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
         print("Invalid label: ", label)
         return []
     
+    
+    if "mmlu-pro" in source:
+        domain = "knowledge"
+    elif "livebench-reasoning" in source:
+        domain = "reasoning"
+    elif "livebench-math" in source:
+        domain = "math"
+    elif "livecodebench" in source:
+        domain = "coding"
+    else:
+        domain = ""
+
+
     result1 = {
         "prompt": format_genrm_prompt(context, response1, response2),
         "num_responses": 2,
@@ -137,6 +153,8 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
         "context": context,
         "response1": response1,
         "response2": response2,
+        "domain": domain,
+        "sample_id": pair_id
     }
     
     result2 = {
@@ -146,6 +164,8 @@ def format_judgebench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
         "context": context,
         "response1": response2,
         "response2": response1,
+        "domain": domain,
+        "sample_id": pair_id
     }
     
     return [result1, result2]
@@ -204,9 +224,8 @@ def format_rewardbench2_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     prompt_text = data.get("prompt", "")
     chosen_responses = data.get("chosen", [])
     rejected_responses = data.get("rejected", [])
-
-    assert len(chosen_responses) == 1
-    assert len(rejected_responses) == 3
+    subset = data.get("subset", [])
+    sample_id = data.get("id", [])
 
     # Format as conversation context
     context = f"User: {prompt_text}"
@@ -231,6 +250,8 @@ def format_rewardbench2_example(data: dict[str, Any]) -> list[dict[str, Any]]:
             "context": context,
             "response1": response1,
             "response2": response2,
+            "domain": subset,
+            "sample_id": sample_id
         }
 
         examples.append(example)
@@ -244,6 +265,8 @@ def format_rewardbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     prompt_text = data.get("prompt", "")
     chosen_resp = data.get("chosen", "")
     rejected_resp = data.get("rejected", "")
+    subset = data.get("subset", "")
+    sample_id = data.get("id", "")
 
     # Format as conversation context
     context = f"User: {prompt_text}"
@@ -258,7 +281,33 @@ def format_rewardbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     else: # Second response (chosen) is better
         response1 = rejected_resp
         response2 = chosen_resp
-            
+
+    domain_map = {
+        "alpacaeval-easy": "Chat", 
+        "alpacaeval-length": "Chat", 
+        "alpacaeval-hard": "Chat", 
+        "mt-bench-easy": "Chat", 
+        "mt-bench-med": "Chat",
+        "mt-bench-hard": "Chat_Hard", 
+        "llmbar-natural": "Chat_Hard", 
+        "llmbar-adver-neighbor": "Chat_Hard", 
+        "llmbar-adver-GPTInst": "Chat_Hard", 
+        "llmbar-adver-GPTOut": "Chat_Hard", 
+        "llmbar-adver-manual": "Chat_Hard",
+        "refusals-dangerous": "Safety", 
+        "refusals-offensive": "Safety", 
+        "xstest-should-refuse": "Safety", 
+        "xstest-should-respond": "Safety", 
+        "donotanswer": "Safety",
+        "math-prm": "Reasoning", 
+        "hep-cpp": "Reasoning", 
+        "hep-go": "Reasoning", 
+        "hep-java": "Reasoning", 
+        "hep-js": "Reasoning", 
+        "hep-python": "Reasoning", 
+        "hep-rust": "Reasoning"
+    }  
+
     example = {
         "prompt": format_genrm_prompt(context, response1, response2),
         "num_responses": 2,
@@ -266,6 +315,8 @@ def format_rewardbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
         "context": context,
         "response1": response1,
         "response2": response2,
+        "domain": domain_map[subset],
+        "sample_id": sample_id
     }
 
     return [example]
@@ -275,11 +326,11 @@ def format_rewardbench_example(data: dict[str, Any]) -> list[dict[str, Any]]:
 def format_rmb_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Format RMB data for GenRM evaluation."""
     # Extract conversation context
-    conversation_input = data.get("conversation_input", [])
+    conversation_input = data.get("conversation_input")
     context_parts = []
     for turn in conversation_input:
-        role = turn.get("role", "")
-        content = turn.get("content", "")
+        role = turn.get("role")
+        content = turn.get("content")
         if role.lower() == "user":
             context_parts.append(f"User: {content}")
         elif role.lower() == "assistant":
@@ -287,38 +338,52 @@ def format_rmb_example(data: dict[str, Any]) -> list[dict[str, Any]]:
     
     context = "\n".join(context_parts)
     
-    # Extract responses
-    chosen_resp = data.get("chosen", {}).get("answer", "")
-    rejected_resp = data.get("reject", {}).get("answer", "")
+    category_path = data.get("category_path")
+    domain = "/".join(category_path.split("/")[:2])
     
-    # Create comparisons with random order to avoid position bias
-    preference = random.choice([0, 1])
+    if "Pairwise_set" in domain:
+        chosen_resps = [data.get("chosen").get("answer")]
+        rejected_resps = [data.get("reject").get("answer")]
+        sample_id = data.get("pair_uid")
+    else: #BoN_set in domain
+        chosen_resps = [data.get("bon_best").get("answer")]
+        rejected_list = data.get("loser_list")
+        rejected_resps = [each.get("answer") for each in rejected_list]
+        sample_id = data.get("bon_uid")
     
-    if preference == 0:  # First response (chosen) is better
-        response1 = chosen_resp
-        response2 = rejected_resp
-    else:  # Second response (chosen) is better
-        response1 = rejected_resp
-        response2 = chosen_resp
+    examples = []
+    for chosen_resp in chosen_resps:
+        for rejected_resp in rejected_resps:
+            # Create comparisons with random order to avoid position bias
+            preference = np.random.choice([0, 1])
+            
+            if preference == 0:  # First response (chosen) is better
+                response1 = chosen_resp
+                response2 = rejected_resp
+            else:  # Second response (chosen) is better
+                response1 = rejected_resp
+                response2 = chosen_resp
+            
+            example = {
+                "prompt": format_genrm_prompt(context, response1, response2),
+                "num_responses": 2,
+                "preference": preference,
+                "context": context,
+                "response1": response1,
+                "response2": response2,
+                "category_path": category_path,
+                "domain": domain,
+                "sample_id": sample_id,
+            }
+            examples.append(example)
     
-    example = {
-        "prompt": format_genrm_prompt(context, response1, response2),
-        "num_responses": 2,
-        "preference": preference,
-        "context": context,
-        "response1": response1,
-        "response2": response2,
-        "category_path": data.get("category_path", ""),
-        "pair_uid": data.get("pair_uid", ""),
-    }
-    
-    return [example]
+    return examples
 
 
 class RMBDataset:
     """RMB dataset for GenRM evaluation."""
     
-    def __init__(self, data_folder: str = "/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/RMB-Reward-Model-Benchmark/RMB_dataset/Pairwise_set"):
+    def __init__(self, data_folder: str = "/lustre/fs1/portfolios/llmservice/projects/llmservice_modelalignment_sft/users/yizhuj/RMB-Reward-Model-Benchmark/RMB_dataset"):
         
         # Find all JSON files in the data folder and subdirectories
         json_files = glob.glob(os.path.join(data_folder, "**", "*.json"), recursive=True)
@@ -408,11 +473,10 @@ class RewardBench2Dataset:
     def __init__(self):
         # Load all splits except Ties
         ds = load_dataset("allenai/reward-bench-2", split="test")
-        filter_ds = ds.filter(lambda ex: ex["subset"] != "Ties")
 
         # Manually expand the dataset by iterating through each example
         all_formatted_examples = []
-        for example in filter_ds:
+        for example in ds:
             # Get the three formatted examples for this sample
             formatted_examples = format_rewardbench2_example(example)
             all_formatted_examples.extend(formatted_examples)
