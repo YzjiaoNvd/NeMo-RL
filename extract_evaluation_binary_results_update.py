@@ -42,7 +42,7 @@ def calculate_accuracy_by_sample_and_domain(data: list[dict]):
             # Try to find domain in different possible locations
             sample_domain = metadata.get('domain') 
 
-            if predicted_ranking != preference+1:
+            if predicted_ranking != preference + 1:
                 all_correct = False
                 # Don't break here - we want to check for domain consistency
         
